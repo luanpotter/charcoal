@@ -46,4 +46,4 @@ Generate the code with `dart run build_runner build`, which you can add to your 
 
 ## Contributing
 
-See [CONTRIBUTING.md](https://github.com/luanpotter/charcoal/blob/main/CONTRIBUTING.md).
+See our [CONTRIBUTING](https://github.com/luanpotter/charcoal/blob/main/CONTRIBUTING.md) guide.

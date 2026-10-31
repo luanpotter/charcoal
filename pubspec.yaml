@@ -6,6 +6,7 @@ environment:
   sdk: ^3.13.0
 
 workspace:
+  - example
   - packages/charcoal
   - packages/charcoal_builder
 
