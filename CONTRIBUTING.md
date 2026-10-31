@@ -21,7 +21,7 @@ Merged commits must follow [conventional commits](https://www.conventionalcommit
 
 ## Releasing
 
-To make a release, running `scripts/release.sh` locally will guide you through creating a tag and pushing. The `publish.yml` GitHub actions picks up from there.  Both `charcoal` and `charcoal_builder` are always released in lock-step for clarity.
+To make a release, running `scripts/release.sh` locally will guide you through opening a release PR. Merging it makes `release-tag.yml` create the tag and start `publish.yml`.  Both `charcoal` and `charcoal_builder` are always released in lock-step for clarity.
 
 `scripts/publish.sh --dry-run` validates both packages without publishing.
 

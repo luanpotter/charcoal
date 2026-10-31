@@ -12,6 +12,11 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
+if [[ "$(git branch --show-current)" != main ]]; then
+  echo 'Releases must start from main.' >&2
+  exit 1
+fi
+
 git pull --ff-only
 scripts/check.sh
 
@@ -24,12 +29,21 @@ fi
 echo "Current version: $before. Pending commits:"
 git --no-pager log --oneline "$range" -- packages
 
-dart run melos version "$@"
+dart run melos version --no-git-commit-version "$@"
 after="$(version)"
 
 if [[ "$before" == "$after" ]]; then
-  echo 'Nothing was released.'
+  echo 'Nothing to release.'
   exit 0
 fi
 
-git push --atomic origin main "v$after"
+branch="release/v$after"
+title="chore(release): Publish v$after"
+
+git switch -c "$branch"
+git add -A
+git commit -m "$title"
+git push -u origin "$branch"
+gh pr create --base main --title "$title" --body "Merging this publishes v$after."
+
+git switch main
