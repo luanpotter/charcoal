@@ -1,0 +1,15 @@
+name: charcoal_example
+description: An example app using charcoal.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  charcoal: ^0.0.0
+
+dev_dependencies:
+  build_runner: ^2.17.1
+  charcoal_builder: ^0.0.0
+  test: ^1.33.0

@@ -11,6 +11,7 @@ environment:
   sdk: ^3.13.0
 
 dependencies:
+  analyzer: ^14.7.0
   build: ^5.0.0
   charcoal: ^0.0.0
 
