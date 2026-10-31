@@ -1,0 +1,26 @@
+name: release-tag
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tag:
+    if: startsWith(github.event.head_commit.message, 'chore(release):')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v$(awk '/^version:/ { print $2 }' packages/charcoal/pubspec.yaml)"
+          git tag "$tag"
+          git push origin "$tag"
+          # a tag pushed with GITHUB_TOKEN does not trigger other workflows
+          gh workflow run publish.yml --ref "$tag"
