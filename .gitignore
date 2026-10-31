@@ -1,0 +1,14 @@
+# dart
+.dart_tool/
+build/
+pubspec.lock
+pubspec_overrides.yaml
+
+# generated
+*.g.dart
+
+# general
+.idea/
+.vscode/
+*.iml
+.DS_Store
