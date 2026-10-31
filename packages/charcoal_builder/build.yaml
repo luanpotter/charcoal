@@ -1,0 +1,12 @@
+builders:
+  charcoal:
+    import: package:charcoal_builder/charcoal_builder.dart
+    builder_factories: [charcoalBuilder]
+    build_extensions:
+      .dart: [.g.dart]
+    auto_apply: dependents
+    build_to: source
+    defaults:
+      generate_for:
+        exclude:
+          - '**.g.dart'

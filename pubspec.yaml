@@ -1,0 +1,30 @@
+name: charcoal_workspace
+description: Monorepo root for charcoal.
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+workspace:
+  - packages/charcoal
+  - packages/charcoal_builder
+
+dev_dependencies:
+  flame_lint: ^1.4.4
+  melos: ^8.10.0
+
+melos:
+  repository: https://github.com/luanpotter/charcoal
+  command:
+    bootstrap:
+      environment:
+        sdk: ^3.13.0
+      dev_dependencies:
+        build_test: ^3.5.23
+        test: ^1.33.0
+    version:
+      mode: fixed
+      workspaceTag: true
+      branch: main
+      linkToCommits: true
+      workspaceChangelog: false
