@@ -170,11 +170,86 @@ final class LibraryReader(this._resolver, this._config) {
 
   FieldType? _fieldTypeOf(DartType type, LibraryElement library) {
     final inner =
-        _primitiveOf(type) ?? _enumOf(type, library) ?? _classOf(type, library);
+        _primitiveOf(type) ??
+        _enumOf(type, library) ??
+        _classOf(type, library) ??
+        _collectionOf(type, library);
     if (inner != null && type.nullabilitySuffix == NullabilitySuffix.question) {
       return NullableFieldType(inner);
     }
     return inner;
+  }
+
+  /// Null unless it can be rebuilt and every type it holds is supported.
+  FieldType? _collectionOf(DartType type, LibraryElement library) {
+    if (type is! InterfaceType) {
+      return null;
+    }
+    final typeProvider = library.typeProvider;
+    final map = type.asInstanceOf(typeProvider.mapElement);
+    if (map != null) {
+      return _mapOf(type, map, library);
+    }
+    final iterable = type.asInstanceOf(typeProvider.iterableElement);
+    return iterable == null ? null : _iterableOf(type, iterable, library);
+  }
+
+  FieldType? _iterableOf(
+    InterfaceType type,
+    InterfaceType iterable,
+    LibraryElement library,
+  ) {
+    final element = _fieldTypeOf(iterable.typeArguments.single, library);
+    if (element == null) {
+      return null;
+    }
+    if (type.isDartCoreList) {
+      return IterableFieldType(element, IterableKind.list);
+    }
+    if (type.isDartCoreSet) {
+      return IterableFieldType(element, IterableKind.set);
+    }
+    if (type.isDartCoreIterable) {
+      return IterableFieldType(element, IterableKind.other);
+    }
+    final ofClass = _ofClassOf(type, library);
+    return ofClass == null
+        ? null
+        : IterableFieldType(element, IterableKind.other, ofClass: ofClass);
+  }
+
+  FieldType? _mapOf(
+    InterfaceType type,
+    InterfaceType map,
+    LibraryElement library,
+  ) {
+    final [keyType, valueType] = map.typeArguments;
+    final key = _mapKeyOf(keyType, library);
+    final value = _fieldTypeOf(valueType, library);
+    if (key == null || value == null) {
+      return null;
+    }
+    if (type.isDartCoreMap) {
+      return MapFieldType(key, value);
+    }
+    final ofClass = _ofClassOf(type, library);
+    return ofClass == null ? null : MapFieldType(key, value, ofClass: ofClass);
+  }
+
+  FieldType? _mapKeyOf(DartType type, LibraryElement library) {
+    if (type.nullabilitySuffix != NullabilitySuffix.none) {
+      return null;
+    }
+    return type.isDartCoreString
+        ? const PrimitiveFieldType(DartPrimitive.string)
+        : _enumOf(type, library);
+  }
+
+  /// The class, if generated code can name it and call its `of` constructor.
+  String? _ofClassOf(InterfaceType type, LibraryElement library) {
+    final element = type.element;
+    final hasOf = element.getNamedConstructor('of') != null;
+    return hasOf && _isVisible(element, library) ? element.name : null;
   }
 
   /// Null if generated code could not name it, or if `name` is overridden.

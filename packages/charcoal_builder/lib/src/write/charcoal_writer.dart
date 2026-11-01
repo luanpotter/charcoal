@@ -1,6 +1,4 @@
-import 'package:charcoal/charcoal.dart';
 import 'package:charcoal_builder/src/model/class_model.dart';
-import 'package:charcoal_builder/src/model/field_type.dart';
 import 'package:charcoal_builder/src/write/json_writer.dart';
 import 'package:dart_style/dart_style.dart';
 
@@ -31,9 +29,9 @@ abstract final class CharcoalWriter() {
   static String _mixin(ClassModel model) {
     final name = model.name;
     final entries = model.fields
-        .map((field) => _encodeEntry(model, field))
+        .map((field) => JsonWriter.encodeEntry(model, field))
         .join(', ');
-    final arguments = model.fields.map(_decodeArgument).join(', ');
+    final arguments = model.fields.map(JsonWriter.decodeArgument).join(', ');
 
     return '''
 mixin ${name}Charcoal {
@@ -74,52 +72,5 @@ mixin ${name}Charcoal {
   static $name \$decode(Map<String, Object?> \$json) => ${model.constructor}($arguments);
 }
 ''';
-  }
-
-  static String _encodeEntry(ClassModel model, FieldModel field) {
-    final key = _key(field);
-    final value = _encode(field.type, '\$it.${field.name}');
-    final isDroppable =
-        field.type is NullableFieldType && model.omit == Omit.nulls;
-    return isDroppable ? '$key: ?$value' : '$key: $value';
-  }
-
-  static String _encode(FieldType type, String value) {
-    return switch (type) {
-      EnumFieldType() => '$value.name',
-      NullableFieldType(inner: EnumFieldType()) => '$value?.name',
-      ClassFieldType(:final name) => '${name}Charcoal.\$encode($value)',
-      NullableFieldType(:final ClassFieldType inner) =>
-        'switch ($value) { '
-            'null => null, '
-            'final \$v => ${_encode(inner, r'$v')} '
-            '}',
-      PrimitiveFieldType() || NullableFieldType() => value,
-    };
-  }
-
-  static String _decodeArgument(FieldModel field) {
-    final value = _decode(field.type, '\$json[${_key(field)}]');
-    return field.isNamedParameter ? '${field.name}: $value' : value;
-  }
-
-  static String _decode(FieldType type, String value) {
-    return switch (type) {
-      PrimitiveFieldType(primitive: DartPrimitive.double) =>
-        '($value as num).toDouble()',
-      PrimitiveFieldType(:final primitive) => '$value as ${primitive.typeName}',
-      EnumFieldType(:final name) => '$name.values.byName($value as String)',
-      ClassFieldType(:final name) =>
-        '${name}Charcoal.\$decode($value as Map<String, Object?>)',
-      NullableFieldType(:final inner) =>
-        'switch ($value) { '
-            'null => null, '
-            'final \$v => ${_decode(inner, r'$v')} '
-            '}',
-    };
-  }
-
-  static String _key(FieldModel field) {
-    return "'${field.name.replaceAll(r'$', r'\$')}'";
   }
 }

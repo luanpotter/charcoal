@@ -1,5 +1,6 @@
 import 'package:charcoal/charcoal.dart';
 import 'package:charcoal_example/author.dart';
+import 'package:charcoal_example/book_details.dart';
 import 'package:charcoal_example/dimensions.dart';
 import 'package:charcoal_example/genre.dart';
 import 'package:charcoal_example/language.dart';
@@ -18,6 +19,7 @@ final class const Book({
   this.language,
   this.publisher,
   this.dimensions,
+  this.details,
   this.notes,
 }) with BookCharcoal {
   final String title;
@@ -29,5 +31,6 @@ final class const Book({
   final Language? language;
   final Publisher? publisher;
   final Dimensions? dimensions;
+  final BookDetails? details;
   final String? notes;
 }
