@@ -3,7 +3,7 @@ builders:
     import: package:charcoal_builder/charcoal_builder.dart
     builder_factories: [charcoalBuilder]
     build_extensions:
-      .dart: [.g.dart]
+      .dart: [.charcoal.g.dart]
     auto_apply: dependents
     build_to: source
     defaults:

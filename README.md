@@ -17,7 +17,7 @@ dart pub add charcoal dev:charcoal_builder dev:build_runner
 ```dart
 import 'package:charcoal/charcoal.dart';
 
-part 'book.g.dart';
+part 'book.charcoal.g.dart';
 
 @immutable
 @Charcoal()
