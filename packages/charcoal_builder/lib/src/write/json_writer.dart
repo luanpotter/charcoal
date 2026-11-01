@@ -1,12 +1,14 @@
 import 'package:charcoal/charcoal.dart';
 import 'package:charcoal_builder/src/model/class_model.dart';
 import 'package:charcoal_builder/src/model/field_type.dart';
+import 'package:charcoal_builder/src/write/json/field_codec.dart';
+import 'package:charcoal_builder/src/write/json/statements.dart';
 
-/// Writes all JSON code: map entries, decoder arguments and the direct writer.
+/// Writes the JSON code of a class, leaving each field to its [FieldCodec].
 abstract final class JsonWriter() {
   static String encodeEntry(ClassModel model, FieldModel field) {
     final key = _mapKeyOf(field);
-    final value = _encode(field.type, '\$it.${field.name}');
+    final value = FieldCodec.of(field.type).encode('\$it.${field.name}', 0);
     if (!_isDroppable(model, field)) {
       return '$key: $value';
     }
@@ -17,7 +19,7 @@ abstract final class JsonWriter() {
 
   static String decodeArgument(FieldModel field, int index) {
     final key = _mapKeyOf(field);
-    final decoded = _decode(field.type, '\$json[$key]');
+    final decoded = FieldCodec.of(field.type).decode('\$json[$key]', 0);
     final value = field.defaultValue == null
         ? decoded
         : '\$json.containsKey($key) ? $decoded : \$d$index';
@@ -30,112 +32,13 @@ abstract final class JsonWriter() {
     return [
       for (final (index, field) in model.fields.indexed)
         if (field.defaultValue case final value?)
-          'static const ${_typeOf(field.type)} \$d$index = $value;',
+          _defaultOf(field, index, value),
     ].join('\n');
   }
 
-  static String _mapKeyOf(FieldModel field) {
-    return "'${field.name.replaceAll(r'$', r'\$')}'";
-  }
-
-  /// Whether a value already is what JSON holds, so `toMap` can reuse it.
-  static bool _isPassthrough(FieldType type) {
-    return switch (type) {
-      PrimitiveFieldType() => true,
-      EnumFieldType() || ClassFieldType() || AdapterFieldType() => false,
-      ExtensionFieldType(:final representation) => _isPassthrough(
-        representation,
-      ),
-      IterableFieldType(kind: IterableKind.list, :final element) =>
-        _isPassthrough(element),
-      IterableFieldType() => false,
-      MapFieldType(key: PrimitiveFieldType(), :final value) => _isPassthrough(
-        value,
-      ),
-      MapFieldType() => false,
-      NullableFieldType(:final inner) => _isPassthrough(inner),
-    };
-  }
-
-  static String _encode(FieldType type, String value, {int depth = 0}) {
-    if (_isPassthrough(type)) {
-      return value;
-    }
-    final item = '\$e$depth';
-    final next = depth + 1;
-    return switch (type) {
-      PrimitiveFieldType() => value,
-      EnumFieldType() => '$value.name',
-      ClassFieldType(:final name) => '${name}Charcoal.\$encode($value)',
-      AdapterFieldType(:final adapter, :final wire) => _encode(
-        wire,
-        '$adapter.encode($value)',
-        depth: depth,
-      ),
-      ExtensionFieldType(:final field, :final representation) => _encode(
-        representation,
-        '$value.$field',
-        depth: depth,
-      ),
-      IterableFieldType(:final element) =>
-        '[for (final $item in $value) '
-            '${_encode(element, item, depth: next)}]',
-      MapFieldType(:final key, value: final valueType) =>
-        '{for (final $item in $value.entries) '
-            '${_encode(key, '$item.key', depth: next)}: '
-            '${_encode(valueType, '$item.value', depth: next)}}',
-      NullableFieldType(inner: EnumFieldType()) => '$value?.name',
-      NullableFieldType(:final inner) =>
-        'switch ($value) { '
-            'null => null, '
-            'final \$v => ${_encode(inner, r'$v', depth: depth)} '
-            '}',
-    };
-  }
-
-  static String _decode(FieldType type, String value, {int depth = 0}) {
-    final item = '\$e$depth';
-    final next = depth + 1;
-    return switch (type) {
-      PrimitiveFieldType(primitive: DartPrimitive.double) =>
-        '($value as num).toDouble()',
-      PrimitiveFieldType(:final primitive) => '$value as ${primitive.typeName}',
-      EnumFieldType(:final name) => '$name.values.byName($value as String)',
-      ClassFieldType(:final name) =>
-        '${name}Charcoal.\$decode($value as Map<String, Object?>)',
-      AdapterFieldType(:final adapter, :final wire) =>
-        '$adapter.decode(${_decode(wire, value, depth: depth)})',
-      ExtensionFieldType(:final constructor, :final representation) =>
-        '$constructor(${_decode(representation, value, depth: depth)})',
-      IterableFieldType(kind: IterableKind.set, :final element) =>
-        '{for (final $item in $value as List<Object?>) '
-            '${_decode(element, item, depth: next)}}',
-      IterableFieldType(:final element, :final ofClass) => _built(
-        ofClass,
-        '[for (final $item in $value as List<Object?>) '
-        '${_decode(element, item, depth: next)}]',
-      ),
-      MapFieldType(:final key, value: final valueType, :final ofClass) =>
-        _built(
-          ofClass,
-          '{for (final $item in ($value as Map<String, Object?>).entries) '
-          '${_decodeKey(key, '$item.key', next)}: '
-          '${_decode(valueType, '$item.value', depth: next)}}',
-        ),
-      NullableFieldType(:final inner) =>
-        'switch ($value) { '
-            'null => null, '
-            'final \$v => ${_decode(inner, r'$v', depth: depth)} '
-            '}',
-    };
-  }
-
-  static String _decodeKey(FieldType key, String value, int depth) {
-    return key is EnumFieldType ? _decode(key, value, depth: depth) : value;
-  }
-
-  static String _built(String? ofClass, String literal) {
-    return ofClass == null ? literal : '$ofClass.of($literal)';
+  static String _defaultOf(FieldModel field, int index, String value) {
+    final type = FieldCodec.of(field.type).typeName;
+    return 'static const $type \$d$index = $value;';
   }
 
   /// The keys `$read` looks for, in the order it expects them.
@@ -143,13 +46,19 @@ abstract final class JsonWriter() {
     return model.fields.map(_mapKeyOf).join(', ');
   }
 
+  static String _mapKeyOf(FieldModel field) {
+    return "'${field.name.replaceAll(r'$', r'\$')}'";
+  }
+
   /// The body of `$read`, which builds no map.
   static String read(ClassModel model) {
     final out = StringBuffer();
     final fields = model.fields;
     for (final (index, field) in fields.indexed) {
+      final type = FieldCodec.of(field.type).typeName;
+      final local = field.type is NullableFieldType ? type : '$type?';
       final initial = field.defaultValue == null ? '' : ' = \$d$index';
-      out.writeln('${_nullableTypeOf(field.type)} \$f$index$initial;');
+      out.writeln('$local \$f$index$initial;');
     }
     out
       ..writeln(r'if ($r.enterObject()) {')
@@ -159,7 +68,7 @@ abstract final class JsonWriter() {
       ..writeln(r'switch ($field) {');
     for (final (index, field) in fields.indexed) {
       out.writeln('case $index:');
-      _read(out, field.type, '\$f$index', 0);
+      FieldCodec.of(field.type).read(out, '\$f$index', 0);
     }
     out
       ..writeln(r'default: $r.skipValue();')
@@ -181,106 +90,9 @@ abstract final class JsonWriter() {
     return out.toString();
   }
 
-  static void _read(
-    StringBuffer out,
-    FieldType type,
-    String target,
-    int depth,
-  ) {
-    final collection = '\$c$depth';
-    final item = '\$e$depth';
-    final next = depth + 1;
-    switch (type) {
-      case PrimitiveFieldType(:final primitive):
-        final method = switch (primitive) {
-          DartPrimitive.string => 'readString',
-          DartPrimitive.int => 'readInt',
-          DartPrimitive.double => 'readDouble',
-          DartPrimitive.num => 'readNum',
-          DartPrimitive.bool => 'readBool',
-        };
-        out.writeln('$target = \$r.$method();');
-      case EnumFieldType(:final name):
-        out.writeln('$target = $name.values.byName(\$r.readString());');
-      case ClassFieldType(:final name):
-        out.writeln('$target = ${name}Charcoal.\$read(\$r);');
-      case AdapterFieldType(:final adapter, :final wire):
-        final raw = '\$x$depth';
-        out.writeln('final ${_typeOf(wire)} $raw;');
-        _read(out, wire, raw, next);
-        out.writeln('$target = $adapter.decode($raw);');
-      case ExtensionFieldType(:final constructor, :final representation):
-        final raw = '\$x$depth';
-        out.writeln('final ${_typeOf(representation)} $raw;');
-        _read(out, representation, raw, next);
-        out.writeln('$target = $constructor($raw);');
-      case IterableFieldType(:final element, :final kind, :final ofClass):
-        final elementType = _typeOf(element);
-        final isSet = kind == IterableKind.set;
-        out
-          ..writeln(
-            'final $collection = <$elementType>${isSet ? '{}' : '[]'};',
-          )
-          ..writeln(r'if ($r.enterArray()) {')
-          ..writeln('do {')
-          ..writeln('final $elementType $item;');
-        _read(out, element, item, next);
-        out
-          ..writeln('$collection.add($item);')
-          ..writeln(r'} while ($r.nextInArray());')
-          ..writeln('}')
-          ..writeln('$target = ${_built(ofClass, collection)};');
-      case MapFieldType(:final key, value: final valueType, :final ofClass):
-        final readKey = key is EnumFieldType
-            ? '${key.name}.values.byName(\$r.readKey())'
-            : r'$r.readKey()';
-        out
-          ..writeln(
-            'final $collection = '
-            '<${_typeOf(key)}, ${_typeOf(valueType)}>{};',
-          )
-          ..writeln(r'if ($r.enterObject()) {')
-          ..writeln('do {')
-          ..writeln('final \$k$depth = $readKey;')
-          ..writeln('final ${_typeOf(valueType)} $item;');
-        _read(out, valueType, item, next);
-        out
-          ..writeln('$collection[\$k$depth] = $item;')
-          ..writeln(r'} while ($r.nextInObject());')
-          ..writeln('}')
-          ..writeln('$target = ${_built(ofClass, collection)};');
-      case NullableFieldType(:final inner):
-        out
-          ..writeln(r'if ($r.tryReadNull()) {')
-          ..writeln('$target = null;')
-          ..writeln('} else {');
-        _read(out, inner, target, depth);
-        out.writeln('}');
-    }
-  }
-
-  static String _nullableTypeOf(FieldType type) {
-    return type is NullableFieldType ? _typeOf(type) : '${_typeOf(type)}?';
-  }
-
-  static String _typeOf(FieldType type) {
-    return switch (type) {
-      PrimitiveFieldType(:final primitive) => primitive.typeName,
-      EnumFieldType(:final name) || ClassFieldType(:final name) => name,
-      ExtensionFieldType(:final typeName) ||
-      AdapterFieldType(:final typeName) => typeName,
-      IterableFieldType(:final element, :final kind, :final ofClass) =>
-        '${ofClass ?? (kind == IterableKind.set ? 'Set' : 'List')}'
-            '<${_typeOf(element)}>',
-      MapFieldType(:final key, value: final valueType, :final ofClass) =>
-        '${ofClass ?? 'Map'}<${_typeOf(key)}, ${_typeOf(valueType)}>',
-      NullableFieldType(:final inner) => '${_typeOf(inner)}?',
-    };
-  }
-
   /// The body of `$write`, which builds no map.
   static String write(ClassModel model) {
-    final out = _Statements()..literal('{');
+    final out = Statements()..literal('{');
     final fields = model.fields;
     final certain = fields.indexWhere((field) => !_isDroppable(model, field));
 
@@ -324,25 +136,25 @@ abstract final class JsonWriter() {
     };
   }
 
-  static void _writePresentValue(_Statements out, FieldModel field) {
+  static void _writePresentValue(Statements out, FieldModel field) {
     if (field.type case NullableFieldType(:final inner)) {
-      _writeValue(out, inner, r'$v');
+      FieldCodec.of(inner).write(out, r'$v', 0);
     } else {
-      _writeValue(out, field.type, '\$it.${field.name}');
+      FieldCodec.of(field.type).write(out, '\$it.${field.name}', 0);
     }
   }
 
   static void _writeCertain(
-    _Statements out,
+    Statements out,
     FieldModel field, {
     String before = '',
   }) {
     out.literal('$before${_keyOf(field)}');
-    _writeValue(out, field.type, '\$it.${field.name}');
+    FieldCodec.of(field.type).write(out, '\$it.${field.name}', 0);
   }
 
   static void _writeDroppable(
-    _Statements out,
+    Statements out,
     FieldModel field, {
     String before = '',
     String after = '',
@@ -357,7 +169,7 @@ abstract final class JsonWriter() {
   }
 
   /// With no certain field, only a flag can tell if a comma is needed.
-  static void _writeOnlyDroppable(_Statements out, List<FieldModel> fields) {
+  static void _writeOnlyDroppable(Statements out, List<FieldModel> fields) {
     if (fields.length > 1) {
       out.code(r'var $comma = false;');
     }
@@ -383,111 +195,5 @@ abstract final class JsonWriter() {
 
   static String _keyOf(FieldModel field) {
     return '"${field.name.replaceAll(r'$', r'\$')}":';
-  }
-
-  static void _writeValue(
-    _Statements out,
-    FieldType type,
-    String value, {
-    int depth = 0,
-  }) {
-    final next = depth + 1;
-    switch (type) {
-      case PrimitiveFieldType(:final primitive):
-        out.code(switch (primitive) {
-          DartPrimitive.string => 'CharcoalJson.writeString(\$sink, $value);',
-          DartPrimitive.int || DartPrimitive.bool => '\$sink.write($value);',
-          DartPrimitive.double ||
-          DartPrimitive.num => 'CharcoalJson.writeNumber(\$sink, $value);',
-        });
-      case EnumFieldType():
-        out
-          ..literal('"')
-          ..code('\$sink.write($value.name);')
-          ..literal('"');
-      case ClassFieldType(:final name):
-        out.code('${name}Charcoal.\$write($value, \$sink);');
-      case AdapterFieldType(:final adapter, :final wire):
-        // In a block, as writing a list refers to its value more than once.
-        final encoded = '\$a$depth';
-        out
-          ..code('{')
-          ..code('final $encoded = $adapter.encode($value);');
-        _writeValue(out, wire, encoded, depth: next);
-        out.code('}');
-      case ExtensionFieldType(:final field, :final representation):
-        _writeValue(out, representation, '$value.$field', depth: depth);
-      case IterableFieldType(kind: IterableKind.list, :final element):
-        final index = '\$i$depth';
-        out
-          ..literal('[')
-          ..code('for (var $index = 0; $index < $value.length; $index++) {')
-          ..code("if ($index > 0) \$sink.write(',');");
-        _writeValue(out, element, '$value[$index]', depth: next);
-        out
-          ..code('}')
-          ..literal(']');
-      case IterableFieldType(:final element):
-        final item = '\$e$depth';
-        out.literal('[');
-        _openIteration(out, value, depth);
-        _writeValue(out, element, item, depth: next);
-        out
-          ..code('}')
-          ..code('}')
-          ..literal(']');
-      case MapFieldType(:final key, value: final valueType):
-        final item = '\$e$depth';
-        out.literal('{');
-        _openIteration(out, '$value.entries', depth);
-        _writeValue(out, key, '$item.key', depth: next);
-        out.literal(':');
-        _writeValue(out, valueType, '$item.value', depth: next);
-        out
-          ..code('}')
-          ..code('}')
-          ..literal('}');
-      case NullableFieldType(:final inner):
-        out.code('if ($value case final \$v?) {');
-        _writeValue(out, inner, r'$v', depth: depth);
-        out.code('} else {');
-        out.literal('null');
-        out.code('}');
-    }
-  }
-
-  /// Opens a block and a loop over anything without an index.
-  static void _openIteration(_Statements out, String iterable, int depth) {
-    final isFirst = '\$isFirst$depth';
-    out
-      ..code('{')
-      ..code('var $isFirst = true;')
-      ..code('for (final \$e$depth in $iterable) {')
-      ..code("if ($isFirst) { $isFirst = false; } else { \$sink.write(','); }");
-  }
-}
-
-/// Statements, with adjacent literal writes merged into one.
-final class _Statements() {
-  final StringBuffer _code = StringBuffer();
-  final StringBuffer _literal = StringBuffer();
-
-  void literal(String text) => _literal.write(text);
-
-  void code(String statement) {
-    _flush();
-    _code.writeln(statement);
-  }
-
-  String finish() {
-    _flush();
-    return _code.toString();
-  }
-
-  void _flush() {
-    if (_literal.isNotEmpty) {
-      _code.writeln("\$sink.write('$_literal');");
-      _literal.clear();
-    }
   }
 }

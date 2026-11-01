@@ -9,6 +9,6 @@ final class const Publisher({
   this.parent,
 }) with PublisherCharcoal {
   final String name;
-  final String? website;
+  final Uri? website;
   final Publisher? parent;
 }
