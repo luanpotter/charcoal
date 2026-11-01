@@ -2,8 +2,107 @@ import 'package:charcoal/charcoal.dart';
 import 'package:charcoal_builder/src/model/class_model.dart';
 import 'package:charcoal_builder/src/model/field_type.dart';
 
-/// Writes the body of a direct JSON writer, which builds no map.
+/// Writes all JSON code: map entries, decoder arguments and the direct writer.
 abstract final class JsonWriter() {
+  static String encodeEntry(ClassModel model, FieldModel field) {
+    final key = _mapKeyOf(field);
+    final value = _encode(field.type, '\$it.${field.name}');
+    return _isDroppable(model, field) ? '$key: ?$value' : '$key: $value';
+  }
+
+  static String decodeArgument(FieldModel field) {
+    final value = _decode(field.type, '\$json[${_mapKeyOf(field)}]');
+    return field.isNamedParameter ? '${field.name}: $value' : value;
+  }
+
+  static String _mapKeyOf(FieldModel field) {
+    return "'${field.name.replaceAll(r'$', r'\$')}'";
+  }
+
+  /// Whether a value already is what JSON holds, so `toMap` can reuse it.
+  static bool _isPassthrough(FieldType type) {
+    return switch (type) {
+      PrimitiveFieldType() => true,
+      EnumFieldType() || ClassFieldType() => false,
+      IterableFieldType(kind: IterableKind.list, :final element) =>
+        _isPassthrough(element),
+      IterableFieldType() => false,
+      MapFieldType(key: PrimitiveFieldType(), :final value) => _isPassthrough(
+        value,
+      ),
+      MapFieldType() => false,
+      NullableFieldType(:final inner) => _isPassthrough(inner),
+    };
+  }
+
+  static String _encode(FieldType type, String value, {int depth = 0}) {
+    if (_isPassthrough(type)) {
+      return value;
+    }
+    final item = '\$e$depth';
+    final next = depth + 1;
+    return switch (type) {
+      PrimitiveFieldType() => value,
+      EnumFieldType() => '$value.name',
+      ClassFieldType(:final name) => '${name}Charcoal.\$encode($value)',
+      IterableFieldType(:final element) =>
+        '[for (final $item in $value) '
+            '${_encode(element, item, depth: next)}]',
+      MapFieldType(:final key, value: final valueType) =>
+        '{for (final $item in $value.entries) '
+            '${_encode(key, '$item.key', depth: next)}: '
+            '${_encode(valueType, '$item.value', depth: next)}}',
+      NullableFieldType(inner: EnumFieldType()) => '$value?.name',
+      NullableFieldType(:final inner) =>
+        'switch ($value) { '
+            'null => null, '
+            'final \$v => ${_encode(inner, r'$v', depth: depth)} '
+            '}',
+    };
+  }
+
+  static String _decode(FieldType type, String value, {int depth = 0}) {
+    final item = '\$e$depth';
+    final next = depth + 1;
+    return switch (type) {
+      PrimitiveFieldType(primitive: DartPrimitive.double) =>
+        '($value as num).toDouble()',
+      PrimitiveFieldType(:final primitive) => '$value as ${primitive.typeName}',
+      EnumFieldType(:final name) => '$name.values.byName($value as String)',
+      ClassFieldType(:final name) =>
+        '${name}Charcoal.\$decode($value as Map<String, Object?>)',
+      IterableFieldType(kind: IterableKind.set, :final element) =>
+        '{for (final $item in $value as List<Object?>) '
+            '${_decode(element, item, depth: next)}}',
+      IterableFieldType(:final element, :final ofClass) => _built(
+        ofClass,
+        '[for (final $item in $value as List<Object?>) '
+        '${_decode(element, item, depth: next)}]',
+      ),
+      MapFieldType(:final key, value: final valueType, :final ofClass) =>
+        _built(
+          ofClass,
+          '{for (final $item in ($value as Map<String, Object?>).entries) '
+          '${_decodeKey(key, '$item.key', next)}: '
+          '${_decode(valueType, '$item.value', depth: next)}}',
+        ),
+      NullableFieldType(:final inner) =>
+        'switch ($value) { '
+            'null => null, '
+            'final \$v => ${_decode(inner, r'$v', depth: depth)} '
+            '}',
+    };
+  }
+
+  static String _decodeKey(FieldType key, String value, int depth) {
+    return key is EnumFieldType ? _decode(key, value, depth: depth) : value;
+  }
+
+  static String _built(String? ofClass, String literal) {
+    return ofClass == null ? literal : '$ofClass.of($literal)';
+  }
+
+  /// The body of `$write`, which builds no map.
   static String write(ClassModel model) {
     final out = _Statements()..literal('{');
     final fields = model.fields;
@@ -87,7 +186,13 @@ abstract final class JsonWriter() {
     return '"${field.name.replaceAll(r'$', r'\$')}":';
   }
 
-  static void _writeValue(_Statements out, FieldType type, String value) {
+  static void _writeValue(
+    _Statements out,
+    FieldType type,
+    String value, {
+    int depth = 0,
+  }) {
+    final next = depth + 1;
     switch (type) {
       case PrimitiveFieldType(:final primitive):
         out.code(switch (primitive) {
@@ -103,13 +208,53 @@ abstract final class JsonWriter() {
           ..literal('"');
       case ClassFieldType(:final name):
         out.code('${name}Charcoal.\$write($value, \$sink);');
+      case IterableFieldType(kind: IterableKind.list, :final element):
+        final index = '\$i$depth';
+        out
+          ..literal('[')
+          ..code('for (var $index = 0; $index < $value.length; $index++) {')
+          ..code("if ($index > 0) \$sink.write(',');");
+        _writeValue(out, element, '$value[$index]', depth: next);
+        out
+          ..code('}')
+          ..literal(']');
+      case IterableFieldType(:final element):
+        final item = '\$e$depth';
+        out.literal('[');
+        _openIteration(out, value, depth);
+        _writeValue(out, element, item, depth: next);
+        out
+          ..code('}')
+          ..code('}')
+          ..literal(']');
+      case MapFieldType(:final key, value: final valueType):
+        final item = '\$e$depth';
+        out.literal('{');
+        _openIteration(out, '$value.entries', depth);
+        _writeValue(out, key, '$item.key', depth: next);
+        out.literal(':');
+        _writeValue(out, valueType, '$item.value', depth: next);
+        out
+          ..code('}')
+          ..code('}')
+          ..literal('}');
       case NullableFieldType(:final inner):
         out.code('if ($value case final \$v?) {');
-        _writeValue(out, inner, r'$v');
+        _writeValue(out, inner, r'$v', depth: depth);
         out.code('} else {');
         out.literal('null');
         out.code('}');
     }
+  }
+
+  /// Opens a block and a loop over anything without an index.
+  static void _openIteration(_Statements out, String iterable, int depth) {
+    final isFirst = '\$isFirst$depth';
+    out
+      ..code('{')
+      ..code('var $isFirst = true;')
+      ..code('for (final \$e$depth in $iterable) {')
+      ..code("if ($isFirst) { $isFirst = false; } else { \$sink.write(','); }");
   }
 }
 
