@@ -6,11 +6,13 @@ A highly opinionated Dart `build_runner` with a unified annotation. Generates JS
 
 The main goal of this project is to be a blazingly fast, static alternative to [dart_mappable](https://github.com/schultek/dart_mappable), which is itself a sane alternative to Google's [json_serializable](https://github.com/google/json_serializable.dart).
 
+
 ## Install
 
 ```bash
 dart pub add charcoal dev:charcoal_builder dev:build_runner
 ```
+
 
 ## Usage
 
@@ -43,6 +45,7 @@ final json = revised.toJsonString();
 ```
 
 Generate the code with `dart run build_runner build`, which you can add to your build script.
+
 
 ## Contributing
 

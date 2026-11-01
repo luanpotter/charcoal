@@ -3,7 +3,7 @@ import 'package:charcoal_builder/src/model/class_model.dart';
 import 'package:charcoal_builder/src/model/field_type.dart';
 
 /// Writes the body of a direct JSON writer, which builds no map.
-abstract final class JsonWriter {
+abstract final class JsonWriter() {
   static String write(ClassModel model) {
     final out = _Statements()..literal('{');
     final fields = model.fields;
@@ -107,7 +107,7 @@ abstract final class JsonWriter {
 }
 
 /// Statements, with adjacent literal writes merged into one.
-final class _Statements {
+final class _Statements() {
   final StringBuffer _code = StringBuffer();
   final StringBuffer _literal = StringBuffer();
 

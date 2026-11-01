@@ -16,7 +16,7 @@ Future<TestBuilderResult> _build(
 }) async {
   final readerWriter = TestReaderWriter(rootPackage: 'package_name');
   await readerWriter.testing.loadIsolateSources();
-  return testBuilder(
+  return await testBuilder(
     CharcoalBuilder(config: CharcoalConfig.fromMap(config)),
     {'package_name|lib/book.dart': source},
     outputs: outputs,

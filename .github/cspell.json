@@ -1,0 +1,13 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "ignorePaths": ["**/*.g.dart", "**/CHANGELOG.md"],
+  "dictionaries": ["en_US", "softwareTerms", "words_dictionary"],
+  "dictionaryDefinitions": [
+    {
+      "name": "words_dictionary",
+      "path": "./.cspell/words_dictionary.txt",
+      "addWords": true
+    }
+  ]
+}

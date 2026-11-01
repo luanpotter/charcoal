@@ -1,2 +1,41 @@
 # Shared with all packages on the repo
 include: package:flame_lint/analysis_options.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+linter:
+  rules:
+    - annotate_redeclares
+    - avoid_annotating_with_dynamic
+    - avoid_catching_errors
+    - avoid_function_literals_in_foreach_calls
+    - avoid_futureor_void
+    - avoid_implementing_value_types
+    - avoid_renaming_method_parameters
+    - avoid_setters_without_getters
+    - conditional_uri_does_not_exist
+    - discarded_futures
+    - document_ignores
+    - eol_at_end_of_file
+    - implicit_reopen
+    - invalid_case_patterns
+    - matching_super_parameters
+    - no_default_cases
+    - no_raw_types
+    - only_throw_errors
+    - overridden_fields
+    - prefer_asserts_with_message
+    - prefer_mixin
+    - specify_nonobvious_property_types
+    - switch_on_type
+    - unawaited_futures
+    - unnecessary_async
+    - unnecessary_type_name_in_constructor
+    - unreachable_from_main
+    - unsafe_variance
+    - use_string_buffers
+    - var_with_no_type_annotation

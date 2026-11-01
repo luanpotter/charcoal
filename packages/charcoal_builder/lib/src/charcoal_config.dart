@@ -1,13 +1,13 @@
 import 'package:charcoal/charcoal.dart';
 
-const _defaultOmit = Omit.nulls;
+const Omit _defaultOmit = Omit.nulls;
 
 /// The options in `build.yaml`.
 final class const CharcoalConfig({this.omit = _defaultOmit}) {
   final Omit omit;
 
   /// Fails on any unknown option or value.
-  factory CharcoalConfig.fromMap(Map<String, dynamic> map) {
+  factory fromMap(Map<String, dynamic> map) {
     final unknown = map.keys.where((key) => key != 'omit');
     if (unknown.isNotEmpty) {
       throw ArgumentError('Unknown charcoal options: ${unknown.join(', ')}.');

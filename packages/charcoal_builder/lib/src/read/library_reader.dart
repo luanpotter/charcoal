@@ -9,7 +9,7 @@ import 'package:charcoal_builder/src/charcoal_config.dart';
 import 'package:charcoal_builder/src/model/class_model.dart';
 import 'package:charcoal_builder/src/model/field_type.dart';
 
-final _charcoalLibrary = Uri.parse('package:charcoal/src/charcoal.dart');
+final Uri _charcoalLibrary = Uri.parse('package:charcoal/src/charcoal.dart');
 
 final class LibraryReader(this._resolver, this._config) {
   final Resolver _resolver;

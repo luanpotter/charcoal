@@ -6,7 +6,7 @@ final class const Charcoal({this.omit}) {
 }
 
 /// Which fields JSON drops.
-enum Omit {
+enum Omit() {
   /// Keeps every field, writing nulls.
   none,
 

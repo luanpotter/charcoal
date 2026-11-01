@@ -16,6 +16,15 @@ jobs:
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install lint tools
+        run: |
+          sudo apt-get install -y shellcheck shfmt
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP"
+          sudo mv "$RUNNER_TEMP/actionlint" /usr/local/bin/
+          npm install -g markdownlint-cli@~0.49.0 cspell@~10.0.1
       - name: Build
         run: scripts/build.sh
       - name: Lint

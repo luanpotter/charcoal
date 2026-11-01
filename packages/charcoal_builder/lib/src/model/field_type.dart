@@ -1,13 +1,11 @@
 sealed class const FieldType();
 
-enum DartPrimitive {
+enum DartPrimitive(this.typeName) {
   string('String'),
   int('int'),
   double('double'),
   num('num'),
   bool('bool');
-
-  const DartPrimitive(this.typeName);
 
   final String typeName;
 }
