@@ -7,6 +7,8 @@ import 'package:charcoal_example/book.dart';
 import 'package:charcoal_example/book_details.dart';
 import 'package:charcoal_example/dimensions.dart';
 import 'package:charcoal_example/genre.dart';
+import 'package:charcoal_example/id.dart';
+import 'package:charcoal_example/isbn.dart';
 import 'package:charcoal_example/language.dart';
 import 'package:charcoal_example/publisher.dart';
 import 'package:charcoal_example/translation.dart';
@@ -22,6 +24,7 @@ Book _book() {
     isHardcover: true,
     genre: Genre.sciFi,
     author: _author,
+    isbn: const Isbn('978-0441013593'),
     language: Language.english,
     publisher: const Publisher(
       name: 'Ace',
@@ -38,6 +41,7 @@ Book _book() {
       relatedGenres: const {Genre.fantasy},
       tags: SplayTreeSet.of(['b', 'a']),
       pageCountByChapter: SplayTreeMap.of({'b': 2, 'a': 1}),
+      relatedBookIds: const [Id(1)],
       quotes: const ['q'],
       awards: const {'Hugo': 1966},
       translations: const {

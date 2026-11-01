@@ -24,6 +24,9 @@ abstract final class JsonWriter() {
     return switch (type) {
       PrimitiveFieldType() => true,
       EnumFieldType() || ClassFieldType() => false,
+      ExtensionFieldType(:final representation) => _isPassthrough(
+        representation,
+      ),
       IterableFieldType(kind: IterableKind.list, :final element) =>
         _isPassthrough(element),
       IterableFieldType() => false,
@@ -45,6 +48,11 @@ abstract final class JsonWriter() {
       PrimitiveFieldType() => value,
       EnumFieldType() => '$value.name',
       ClassFieldType(:final name) => '${name}Charcoal.\$encode($value)',
+      ExtensionFieldType(:final field, :final representation) => _encode(
+        representation,
+        '$value.$field',
+        depth: depth,
+      ),
       IterableFieldType(:final element) =>
         '[for (final $item in $value) '
             '${_encode(element, item, depth: next)}]',
@@ -71,6 +79,8 @@ abstract final class JsonWriter() {
       EnumFieldType(:final name) => '$name.values.byName($value as String)',
       ClassFieldType(:final name) =>
         '${name}Charcoal.\$decode($value as Map<String, Object?>)',
+      ExtensionFieldType(:final constructor, :final representation) =>
+        '$constructor(${_decode(representation, value, depth: depth)})',
       IterableFieldType(kind: IterableKind.set, :final element) =>
         '{for (final $item in $value as List<Object?>) '
             '${_decode(element, item, depth: next)}}',
@@ -167,6 +177,11 @@ abstract final class JsonWriter() {
         out.writeln('$target = $name.values.byName(\$r.readString());');
       case ClassFieldType(:final name):
         out.writeln('$target = ${name}Charcoal.\$read(\$r);');
+      case ExtensionFieldType(:final constructor, :final representation):
+        final raw = '\$x$depth';
+        out.writeln('final ${_typeOf(representation)} $raw;');
+        _read(out, representation, raw, next);
+        out.writeln('$target = $constructor($raw);');
       case IterableFieldType(:final element, :final kind, :final ofClass):
         final elementType = _typeOf(element);
         final isSet = kind == IterableKind.set;
@@ -220,6 +235,7 @@ abstract final class JsonWriter() {
     return switch (type) {
       PrimitiveFieldType(:final primitive) => primitive.typeName,
       EnumFieldType(:final name) || ClassFieldType(:final name) => name,
+      ExtensionFieldType(:final typeName) => typeName,
       IterableFieldType(:final element, :final kind, :final ofClass) =>
         '${ofClass ?? (kind == IterableKind.set ? 'Set' : 'List')}'
             '<${_typeOf(element)}>',
@@ -335,6 +351,8 @@ abstract final class JsonWriter() {
           ..literal('"');
       case ClassFieldType(:final name):
         out.code('${name}Charcoal.\$write($value, \$sink);');
+      case ExtensionFieldType(:final field, :final representation):
+        _writeValue(out, representation, '$value.$field', depth: depth);
       case IterableFieldType(kind: IterableKind.list, :final element):
         final index = '\$i$depth';
         out
