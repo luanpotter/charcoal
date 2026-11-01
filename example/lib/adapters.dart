@@ -25,11 +25,3 @@ final class const PageRangeAdapter()
   @override
   PageRange decode(List<int> json) => PageRange(json[0], json[1]);
 }
-
-final class const DateAdapter() implements CharcoalAdapter<DateTime, String> {
-  @override
-  String encode(DateTime value) => value.toIso8601String();
-
-  @override
-  DateTime decode(String json) => DateTime.parse(json);
-}

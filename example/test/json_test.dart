@@ -88,7 +88,7 @@ void main() {
     });
 
     test('a class keeping nulls', () {
-      for (final website in const [null, 'ace.com']) {
+      for (final website in [null, Uri.parse('https://ace.com/?a=b c')]) {
         for (final parent in const [null, Publisher(name: 'Penguin')]) {
           final publisher = Publisher(
             name: 'Ace',

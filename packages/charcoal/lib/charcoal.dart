@@ -21,6 +21,7 @@
 /// `fromMap`/`fromJsonString`.
 library;
 
+export 'src/adapters/adapters.dart';
 export 'src/charcoal.dart';
 export 'src/charcoal_adapter.dart';
 export 'src/charcoal_exception.dart';

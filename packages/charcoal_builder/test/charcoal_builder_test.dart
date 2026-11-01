@@ -807,6 +807,92 @@ void main() {
       );
     });
 
+    test('ship with charcoal for DateTime and Uri', () async {
+      final result = await _build(
+        '''
+        $_header
+        @Charcoal()
+        class Book(this.date, this.uri) with BookCharcoal {
+          final DateTime date;
+          final Uri? uri;
+        }
+        ''',
+        outputs: {
+          _output: decodedMatches(
+            allOf([
+              contains(r"'date': const DateTimeAdapter().encode($it.date)"),
+              contains(r'final $v => const UriAdapter().encode($v)'),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('can replace what ships, through a re-export', () async {
+      const mine = '''
+        class const MyDate() implements CharcoalAdapter<DateTime, int> {
+          @override
+          int encode(DateTime value) => value.millisecondsSinceEpoch;
+          @override
+          DateTime decode(int json) {
+            return DateTime.fromMillisecondsSinceEpoch(json);
+          }
+        }
+      ''';
+      final result = await _build(
+        '''
+        import 'bundle.dart';
+        part 'book.charcoal.g.dart';
+        @Charcoal()
+        class Book(this.date) with BookCharcoal {
+          final DateTime date;
+        }
+        ''',
+        assets: {
+          'package_name|lib/mine.dart':
+              '''
+              import 'package:charcoal/charcoal.dart';
+              $mine
+              ''',
+          'package_name|lib/bundle.dart': '''
+            export 'package:charcoal/charcoal.dart' hide DateTimeAdapter;
+            export 'mine.dart';
+          ''',
+        },
+        outputs: {
+          _output: decodedMatches(
+            allOf([
+              contains('const MyDate().encode'),
+              isNot(contains('DateTimeAdapter')),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('conflict with what ships when not hidden', () async {
+      await _expectError(
+        '''
+        $_header
+        class const MyDate() implements CharcoalAdapter<DateTime, int> {
+          @override
+          int encode(DateTime value) => 1;
+          @override
+          DateTime decode(int json) => DateTime(2000);
+        }
+        @Charcoal()
+        class Book(this.date) with BookCharcoal {
+          final DateTime date;
+        }
+        ''',
+        'There are two adapters for DateTime in scope',
+      );
+    });
+
     test('are not used through a prefix', () async {
       final result = await _build(
         '''
