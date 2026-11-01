@@ -82,7 +82,7 @@ void main() {
 
   group('decodeObject', () {
     test('decodes an object', () {
-      expect(CharcoalJson.decodeObject('{"pages":1}'), {'pages': 1});
+      expect(CharcoalJson.decodeObject('{"pageCount":1}'), {'pageCount': 1});
     });
 
     test('refuses anything else', () {

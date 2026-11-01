@@ -38,11 +38,11 @@ void main() {
         '''
       $_header
       @Charcoal()
-      class Book({required this.title, required this.rating, this.note})
+      class Book({required this.title, required this.rating, this.notes})
           with BookCharcoal {
         final String title;
         final double rating;
-        final double? note;
+        final double? notes;
       }
       ''';
 
@@ -72,7 +72,7 @@ void main() {
             allOf(
               contains(r'toMap() => $encode(this as Book);'),
               contains(r"'title': $it.title"),
-              contains(r"'note': ?$it.note"),
+              contains(r"'notes': ?$it.notes"),
             ),
           ),
         },
@@ -200,16 +200,16 @@ void main() {
         '''
         $_header
         @Charcoal()
-        class Book(this.title, this.pages) with BookCharcoal {
+        class Book(this.title, this.pageCount) with BookCharcoal {
           final String title;
-          final int pages;
+          final int pageCount;
         }
         ''',
         outputs: {
           _output: decodedMatches(
             allOf(
               contains(r'''$sink.write('{"title":');'''),
-              contains(r'''$sink.write(',"pages":');'''),
+              contains(r'''$sink.write(',"pageCount":');'''),
               isNot(contains(r'$comma')),
             ),
           ),
@@ -237,8 +237,8 @@ void main() {
         '''
         $_header
         @Charcoal()
-        class Book(this.note, this.title, this.subtitle) with BookCharcoal {
-          final String? note;
+        class Book(this.notes, this.title, this.subtitle) with BookCharcoal {
+          final String? notes;
           final String title;
           final String? subtitle;
         }
@@ -263,8 +263,8 @@ void main() {
         '''
         $_header
         @Charcoal()
-        class Book(this.note) with BookCharcoal {
-          final String? note;
+        class Book(this.notes) with BookCharcoal {
+          final String? notes;
         }
         ''',
         outputs: {_output: decodedMatches(isNot(contains(r'$comma')))},
@@ -278,8 +278,8 @@ void main() {
         '''
         $_header
         @Charcoal()
-        class Book(this.note, this.subtitle) with BookCharcoal {
-          final String? note;
+        class Book(this.notes, this.subtitle) with BookCharcoal {
+          final String? notes;
           final String? subtitle;
         }
         ''',
@@ -317,12 +317,12 @@ void main() {
         '''
       $_header
       @Charcoal()
-      class Book(this.note) with BookCharcoal {
-        final String? note;
+      class Book(this.notes) with BookCharcoal {
+        final String? notes;
       }
       ''';
-    const keepsNulls = r"'note': $it.note";
-    const dropsNulls = r"'note': ?$it.note";
+    const keepsNulls = r"'notes': $it.notes";
+    const dropsNulls = r"'notes': ?$it.notes";
 
     test('drops nulls by default', () async {
       final result = await _build(
@@ -348,8 +348,8 @@ void main() {
         '''
         $_header
         @Charcoal(omit: Omit.nulls)
-        class Book(this.note) with BookCharcoal {
-          final String? note;
+        class Book(this.notes) with BookCharcoal {
+          final String? notes;
         }
         ''',
         config: {'omit': 'none'},
@@ -364,8 +364,8 @@ void main() {
         '''
         $_header
         @Charcoal(omit: Omit.none)
-        class Book(this.note) with BookCharcoal {
-          final String? note;
+        class Book(this.notes) with BookCharcoal {
+          final String? notes;
         }
         ''',
         outputs: {_output: decodedMatches(contains(keepsNulls))},
@@ -385,6 +385,104 @@ void main() {
       expect(
         () => CharcoalConfig.fromMap({'discriminator': 'type'}),
         throwsA(isA<ArgumentError>()),
+      );
+    });
+  });
+
+  group('nested classes', () {
+    const author = '''
+      import 'package:charcoal/charcoal.dart';
+      part 'author.charcoal.g.dart';
+      @Charcoal()
+      class Author(this.name) with AuthorCharcoal {
+        final String name;
+      }
+    ''';
+    const assets = {'package_name|lib/author.dart': author};
+    final authorOutput = {'package_name|lib/author.charcoal.g.dart': anything};
+
+    test('call the generated code of the other class', () async {
+      final result = await _build(
+        '''
+        import 'author.dart';
+        $_header
+        @Charcoal()
+        class Book(this.author, this.editor) with BookCharcoal {
+          final Author author;
+          final Author? editor;
+        }
+        ''',
+        assets: assets,
+        outputs: {
+          ...authorOutput,
+          _output: decodedMatches(
+            allOf([
+              contains(r"'author': AuthorCharcoal.$encode($it.author)"),
+              contains(r'final $v => AuthorCharcoal.$encode($v)'),
+              contains(r'AuthorCharcoal.$write($it.author, $sink);'),
+              contains(r'AuthorCharcoal.$write($v, $sink);'),
+              contains(
+                r"AuthorCharcoal.$decode($json['author'] "
+                'as Map<String, Object?>)',
+              ),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('can refer to themselves', () async {
+      final result = await _build(
+        '''
+        $_header
+        @Charcoal()
+        class Book(this.sequel) with BookCharcoal {
+          final Book? sequel;
+        }
+        ''',
+        outputs: {
+          _output: decodedMatches(contains(r'BookCharcoal.$write($v, $sink);')),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('fail the build when imported with a prefix', () async {
+      final result = await _build(
+        '''
+        import 'author.dart' as a;
+        $_header
+        @Charcoal()
+        class Book(this.author) with BookCharcoal {
+          final a.Author author;
+        }
+        ''',
+        assets: assets,
+        outputs: authorOutput,
+      );
+
+      expect(result.succeeded, isFalse);
+      expect(result.errors.join('\n'), contains('Book.author is a Author'));
+    });
+
+    test('fail the build when generic', () async {
+      final result = await _build('''
+        $_header
+        @Charcoal()
+        class Book(this.author) with BookCharcoal {
+          final Author<int> author;
+        }
+        @Charcoal()
+        class Author<T>() with AuthorCharcoal;
+        ''');
+
+      expect(result.succeeded, isFalse);
+      expect(
+        result.errors.join('\n'),
+        contains('Book.author is a Author<int>'),
       );
     });
   });
@@ -665,11 +763,11 @@ void main() {
         '''
         $_header
         @Charcoal()
-        class Book({this.pages = 1}) with BookCharcoal {
-          final int pages;
+        class Book({this.pageCount = 1}) with BookCharcoal {
+          final int pageCount;
         }
         ''',
-        'Book.pages has a default',
+        'Book.pageCount has a default',
       );
     });
 
@@ -693,10 +791,10 @@ void main() {
         $_header
         @Charcoal()
         class Book() with BookCharcoal {
-          int pages = 0;
+          int pageCount = 0;
         }
         ''',
-        'Book.pages is not a constructor parameter',
+        'Book.pageCount is not a constructor parameter',
       );
     });
 
@@ -705,7 +803,7 @@ void main() {
         import 'package:charcoal/charcoal.dart';
         @Charcoal()
         class Book() {
-          int pages = 0;
+          int pageCount = 0;
         }
         ''');
 
@@ -714,7 +812,7 @@ void main() {
         allOf(
           contains('Missing part'),
           contains('must declare'),
-          contains('Book.pages'),
+          contains('Book.pageCount'),
         ),
       );
     });

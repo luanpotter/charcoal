@@ -35,20 +35,20 @@ class Book({
   required this.id,
   required this.title,
   required this.genres,
-  this.note,
+  this.notes,
   this.releasedAt,
 }) with BookCharcoal {
   final Id<Book> id;
   final String title;
   final List<Genre> genres;
-  final String? note;
+  final String? notes;
   final DateTime? releasedAt;
 }
 ```
 
 ```dart
 final book = BookCharcoal.fromJsonString(body);
-final revised = book.copyWith(note: null);
+final revised = book.copyWith(notes: null);
 final json = revised.toJsonString();
 ```
 
