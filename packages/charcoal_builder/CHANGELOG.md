@@ -1,3 +1,7 @@
+## 0.0.3
+
+ - **FEAT**: Support enum fields ([#12](https://github.com/luanpotter/charcoal/issues/12)). ([10a6a7cd](https://github.com/luanpotter/charcoal/commit/10a6a7cd7834603f1915f17699dbe9075e391aa5))
+
 ## 0.0.2
 
  - **FEAT**: Generate JSON-related methods ([#7](https://github.com/luanpotter/charcoal/issues/7)). ([c685e534](https://github.com/luanpotter/charcoal/commit/c685e534a21336b89529938f418017a1e5258990))
