@@ -63,10 +63,19 @@ mixin ${name}Charcoal {
 
   static $name fromJsonString(String \$source) {
     try {
-      return \$decode(CharcoalJson.decodeObject(\$source));
+      final \$r = CharcoalJsonReader(\$source);
+      final \$it = \$read(\$r);
+      \$r.finish();
+      return \$it;
     } catch (\$error, \$stack) {
       Error.throwWithStackTrace(CharcoalException('$name', \$error), \$stack);
     }
+  }
+
+  static const List<String> \$keys = [${JsonWriter.keys(model)}];
+
+  static $name \$read(CharcoalJsonReader \$r) {
+    ${JsonWriter.read(model)}
   }
 
   static $name \$decode(Map<String, Object?> \$json) => ${model.constructor}($arguments);

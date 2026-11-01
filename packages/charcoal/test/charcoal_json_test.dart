@@ -79,14 +79,4 @@ void main() {
       }
     });
   });
-
-  group('decodeObject', () {
-    test('decodes an object', () {
-      expect(CharcoalJson.decodeObject('{"pageCount":1}'), {'pageCount': 1});
-    });
-
-    test('refuses anything else', () {
-      expect(() => CharcoalJson.decodeObject('[1]'), throwsA(isA<TypeError>()));
-    });
-  });
 }

@@ -212,7 +212,7 @@ final class LibraryReader(this._resolver, this._config) {
     if (type.isDartCoreIterable) {
       return IterableFieldType(element, IterableKind.other);
     }
-    final ofClass = _ofClassOf(type, library);
+    final ofClass = _ofClassOf(type, 1, library);
     return ofClass == null
         ? null
         : IterableFieldType(element, IterableKind.other, ofClass: ofClass);
@@ -232,7 +232,7 @@ final class LibraryReader(this._resolver, this._config) {
     if (type.isDartCoreMap) {
       return MapFieldType(key, value);
     }
-    final ofClass = _ofClassOf(type, library);
+    final ofClass = _ofClassOf(type, 2, library);
     return ofClass == null ? null : MapFieldType(key, value, ofClass: ofClass);
   }
 
@@ -246,10 +246,16 @@ final class LibraryReader(this._resolver, this._config) {
   }
 
   /// The class, if generated code can name it and call its `of` constructor.
-  String? _ofClassOf(InterfaceType type, LibraryElement library) {
+  ///
+  /// It must have the type parameters of what it holds, to declare it as such.
+  String? _ofClassOf(InterfaceType type, int arity, LibraryElement library) {
     final element = type.element;
     final hasOf = element.getNamedConstructor('of') != null;
-    return hasOf && _isVisible(element, library) ? element.name : null;
+    final isUsable =
+        hasOf &&
+        element.typeParameters.length == arity &&
+        _isVisible(element, library);
+    return isUsable ? element.name : null;
   }
 
   /// Null if generated code could not name it, or if `name` is overridden.
