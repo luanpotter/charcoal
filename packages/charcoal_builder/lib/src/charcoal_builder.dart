@@ -5,10 +5,10 @@ import 'package:charcoal_builder/src/write/charcoal_writer.dart';
 
 const _extension = '.charcoal.g.dart';
 
-class CharcoalBuilder implements Builder {
+class CharcoalBuilder({
+  this.config = const CharcoalConfig(),
+}) implements Builder {
   final CharcoalConfig config;
-
-  CharcoalBuilder({this.config = const CharcoalConfig()});
 
   @override
   Map<String, List<String>> get buildExtensions => const {

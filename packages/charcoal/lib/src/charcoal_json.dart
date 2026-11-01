@@ -9,7 +9,7 @@ const int _surrogateLead = 0xd800;
 const int _surrogateTrail = 0xdc00;
 
 /// What generated JSON code needs and cannot import from a part.
-abstract final class CharcoalJson {
+abstract final class CharcoalJson() {
   static Map<String, Object?> decodeObject(String source) {
     return jsonDecode(source) as Map<String, Object?>;
   }

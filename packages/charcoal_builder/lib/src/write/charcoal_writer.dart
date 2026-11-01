@@ -4,7 +4,7 @@ import 'package:charcoal_builder/src/model/field_type.dart';
 import 'package:charcoal_builder/src/write/json_writer.dart';
 import 'package:dart_style/dart_style.dart';
 
-abstract final class CharcoalWriter {
+abstract final class CharcoalWriter() {
   static const _pageWidth = 120;
 
   static String write({
