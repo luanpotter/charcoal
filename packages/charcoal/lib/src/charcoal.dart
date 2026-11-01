@@ -10,6 +10,10 @@ enum Omit() {
   /// Keeps every field, writing nulls.
   none,
 
-  /// Drops null fields.
+  /// Drops null fields, unless their default is not null.
   nulls,
+
+  /// Also drops strings and collections that are empty, if that is their
+  /// default, so that decoding brings them back.
+  empty,
 }

@@ -130,9 +130,6 @@ final class LibraryReader(this._resolver, this._config) {
         errors.add('$label must be a `this.$parameterName` parameter.');
         continue;
       }
-      if (parameter.hasDefaultValue) {
-        errors.add('$label has a default, which is not supported yet.');
-      }
 
       final type = _fieldTypeOf(parameter.type, constructor.library);
       if (type == null) {
@@ -141,15 +138,26 @@ final class LibraryReader(this._resolver, this._config) {
         );
         continue;
       }
+      final defaultValue = parameter.computeConstantValue();
       fields.add(
         FieldModel(
           name: parameterName,
           type: type,
           isNamedParameter: parameter.isNamed,
+          defaultValue: parameter.defaultValueCode,
+          isDefaultNull: defaultValue?.isNull ?? false,
+          isDefaultEmpty: defaultValue != null && _isEmpty(defaultValue),
         ),
       );
     }
     return fields;
+  }
+
+  bool _isEmpty(DartObject value) {
+    return value.toStringValue() == '' ||
+        (value.toListValue()?.isEmpty ?? false) ||
+        (value.toSetValue()?.isEmpty ?? false) ||
+        (value.toMapValue()?.isEmpty ?? false);
   }
 
   void _checkOtherFields(ClassElement element, List<FieldModel> fields) {

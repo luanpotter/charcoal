@@ -10,7 +10,7 @@ import 'package:charcoal_example/translation.dart';
 
 part 'book_details.charcoal.g.dart';
 
-@Charcoal()
+@Charcoal(omit: Omit.empty)
 final class BookDetails({
   required this.partTitles,
   required this.chapterTitles,
@@ -19,8 +19,9 @@ final class BookDetails({
   required this.tags,
   required this.pageCountByChapter,
   required this.relatedBookIds,
-  this.quotes,
-  this.awards,
+  this.subtitle = '',
+  this.quotes = const [],
+  this.awards = const {},
   this.translations,
 }) with BookDetailsCharcoal {
   final List<String?> partTitles;
@@ -30,7 +31,8 @@ final class BookDetails({
   final SplayTreeSet<String> tags;
   final SplayTreeMap<String, int> pageCountByChapter;
   final List<Id<Book>> relatedBookIds;
-  final Iterable<String>? quotes;
-  final Map<String, int>? awards;
+  final String subtitle;
+  final Iterable<String> quotes;
+  final Map<String, int> awards;
   final Map<Language, Translation>? translations;
 }
