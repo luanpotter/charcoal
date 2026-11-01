@@ -25,27 +25,27 @@ Microseconds per run; best in each run (within noise) is bolded:
 
 | Scenario           |  Charcoal | json_serializable | dart_mappable |   freezed |
 | :----------------- | --------: | ----------------: | ------------: | --------: |
-| `flat.toJson`      |  **0.86** |              1.70 |          2.21 |      1.68 |
-| `flat.fromJson`    |  **0.77** |              1.24 |          1.73 |      1.20 |
-| `flat.toMap`       |  **0.22** |              0.26 |          0.58 |      0.26 |
+| `flat.toJson`      |  **0.90** |              1.70 |          2.15 |      1.73 |
+| `flat.fromJson`    |  **0.79** |              1.25 |          1.68 |      1.27 |
+| `flat.toMap`       |  **0.23** |              0.26 |          0.56 |      0.26 |
 | `flat.fromMap`     |  **0.07** |          **0.07** |          0.33 |  **0.07** |
-| `book.toJson`      |  **3.38** |              5.57 |         11.16 |      5.55 |
-| `book.fromJson`    |  **1.98** |              3.59 |          7.77 |      3.49 |
-| `book.toMap`       |  **0.79** |              0.98 |          6.11 |      0.99 |
-| `book.fromMap`     |  **0.44** |              0.54 |          2.41 |      0.53 |
-| `catalog.toJson`   | **3,921** |             6,416 |        13,324 |     6,437 |
-| `catalog.fromJson` | **1,989** |             3,938 |         8,257 |     3,814 |
-| `catalog.toMap`    |   **828** |             1,068 |         7,461 |     1,052 |
-| `catalog.fromMap`  |   **480** |               591 |         2,831 |       592 |
+| `book.toJson`      |  **4.28** |              6.63 |         12.05 |      6.63 |
+| `book.fromJson`    |  **3.32** |              5.36 |          8.98 |      5.28 |
+| `book.toMap`       |  **1.32** |              1.47 |          6.80 |      1.48 |
+| `book.fromMap`     |  **1.63** |          **1.75** |          3.87 |  **1.75** |
+| `catalog.toJson`   | **5,042** |             7,300 |        14,584 |     7,601 |
+| `catalog.fromJson` | **3,358** |             5,693 |        10,653 |     5,481 |
+| `catalog.toMap`    | **1,395** |             1,587 |         8,852 |     1,622 |
+| `catalog.fromMap`  | **1,916** |         **2,061** |         5,213 | **1,878** |
 
 Build times are mostly `build_runner` compiling its builders from cold, so they say little about the actual generators, but I still measured it:
 
 | Library           | Build (s) | Generated code (KB) | Executable (KB) |
 | :---------------- | --------: | ------------------: | --------------: |
-| Charcoal          |        35 |                  12 |           6,481 |
-| json_serializable |        35 |                   2 |           6,516 |
-| dart_mappable     |        36 |                  18 |           7,023 |
-| freezed           |        37 |                  39 |           6,558 |
+| Charcoal          |        36 |                  13 |           6,522 |
+| json_serializable |        36 |                   2 |           6,541 |
+| dart_mappable     |        38 |                  18 |           7,042 |
+| freezed           |        39 |                  40 |           6,584 |
 
 You can check the exact code for each test on this folder. Note that these are from local runs on a Linux, with Dart 3.13, so treat them with skepticism.
 
@@ -54,7 +54,7 @@ You can check the exact code for each test on this folder. Note that these are f
 
 Ultra-fast means Charcoal pays a hefty cost: a lot of the internal is hand-rolled and not using shared fundamentals (such as Dart's json libraries):
 
-- **Writing JSON:** Charcoal's direct writer takes about 40% less time than `json_serializable` and about a third of the time of `dart_mappable`. It writes straight to a buffer, with no intermediate map.
-- **Reading JSON:** Charcoal takes about half the time of `json_serializable` and about a quarter of `dart_mappable`. It parses straight into the class, while the others build a map through `jsonDecode` first, which is where most of their time goes.
-- **Maps:** Charcoal takes about 20% less time than `json_serializable` on `book` and `catalog`, and ties on the smallest case, `flat.fromMap`. The gaps are smaller here because both are direct code. `dart_mappable` is several times slower, as it dispatches at runtime.
+- **Writing JSON:** Charcoal's direct writer takes about a third less time than `json_serializable` and about a third of the time of `dart_mappable`. It writes straight to a buffer, with no intermediate map.
+- **Reading JSON:** Charcoal takes about 40% less time than `json_serializable` and about a third of the time of `dart_mappable`. It parses straight into the class, while the others build a map through `jsonDecode` first.
+- **Maps:** Charcoal takes about 10% less time than `json_serializable` on `toMap`, and is tied on `fromMap`, where parsing the date in `book` is most of the work for everyone. The gaps are smaller here because both are direct code. `dart_mappable` is several times slower, as it dispatches at runtime.
 - **freezed:** it matches `json_serializable`, as it generates its JSON code through it.

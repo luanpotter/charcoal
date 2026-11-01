@@ -24,6 +24,9 @@ void _runAll<T>(String name, Codec<T> codec, Map<String, Object?> payload) {
 
 /// Every library has to agree on the output, or the numbers mean nothing.
 void _checkFair<T>(String name, Codec<T> codec, T value, String text) {
+  // `jsonEncode` converts objects by itself, hiding a lazy `toMap` below.
+  _checkPlain(name, codec.toMap(value));
+
   final outputs = {
     'toJson': codec.toJson(value),
     'fromJson': codec.toJson(codec.fromJson(text)),
@@ -33,6 +36,19 @@ void _checkFair<T>(String name, Codec<T> codec, T value, String text) {
     if (output != text) {
       throw StateError('$name.$key differs from the payload:\n$output\n$text');
     }
+  }
+}
+
+void _checkPlain(String name, Object? value) {
+  switch (value) {
+    case null || String() || num() || bool():
+      return;
+    case final List<Object?> list:
+      list.forEach((item) => _checkPlain(name, item));
+    case final Map<String, Object?> map:
+      map.values.forEach((item) => _checkPlain(name, item));
+    default:
+      throw StateError('$name.toMap left a ${value.runtimeType} inside.');
   }
 }
 
