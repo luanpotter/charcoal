@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:charcoal/charcoal.dart';
+import 'package:charcoal_example/adapters.dart';
 import 'package:charcoal_example/author.dart';
 import 'package:charcoal_example/book.dart';
 import 'package:charcoal_example/genre.dart';
@@ -23,6 +24,9 @@ final class BookDetails({
   this.quotes = const [],
   this.awards = const {},
   this.translations,
+  this.price,
+  this.excerpt,
+  this.reprintDates = const [],
 }) with BookDetailsCharcoal {
   final List<String?> partTitles;
   final List<List<String>> chapterTitles;
@@ -35,4 +39,7 @@ final class BookDetails({
   final Iterable<String> quotes;
   final Map<String, int> awards;
   final Map<Language, Translation>? translations;
+  final Price? price;
+  final PageRange? excerpt;
+  final List<DateTime> reprintDates;
 }

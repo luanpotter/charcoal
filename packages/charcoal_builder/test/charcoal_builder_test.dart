@@ -669,6 +669,295 @@ void main() {
     });
   });
 
+  group('adapters', () {
+    const adapter = '''
+      class Stamp {}
+      class const StampAdapter() implements CharcoalAdapter<Stamp, int> {
+        @override
+        int encode(Stamp value) => 1;
+        @override
+        Stamp decode(int json) => Stamp();
+      }
+    ''';
+
+    test('are called directly, at any depth', () async {
+      final result = await _build(
+        '''
+        $_header
+        $adapter
+        @Charcoal()
+        class Book(this.a, this.b, this.c) with BookCharcoal {
+          final Stamp a;
+          final Stamp? b;
+          final List<Stamp> c;
+        }
+        ''',
+        outputs: {
+          _output: decodedMatches(
+            allOf([
+              contains(r"'a': const StampAdapter().encode($it.a)"),
+              contains(r'final $v => const StampAdapter().encode($v)'),
+              contains(r'const StampAdapter().encode($e0)'),
+              contains(r"const StampAdapter().decode($json['a'] as int)"),
+              contains(r'final $a0 = const StampAdapter().encode($it.a);'),
+              contains(r'$f0 = const StampAdapter().decode($x0);'),
+              contains(r'Stamp? $f0;'),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('take precedence over what charcoal would do', () async {
+      final result = await _build(
+        '''
+        $_header
+        enum Genre { fantasy }
+        class const GenreAdapter() implements CharcoalAdapter<Genre, int> {
+          @override
+          int encode(Genre value) => value.index;
+          @override
+          Genre decode(int json) => Genre.values[json];
+        }
+        @Charcoal()
+        class Book(this.genre) with BookCharcoal {
+          final Genre genre;
+        }
+        ''',
+        outputs: {
+          _output: decodedMatches(
+            allOf([
+              contains('const GenreAdapter().encode'),
+              isNot(contains('byName')),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    const stamps = {
+      'package_name|lib/stamp.dart':
+          '''
+          import 'package:charcoal/charcoal.dart';
+          $adapter
+          ''',
+    };
+    const book = '''
+      @Charcoal()
+      class Book(this.a) with BookCharcoal {
+        final Stamp a;
+      }
+    ''';
+
+    test('come along with the type they adapt', () async {
+      final result = await _build(
+        '''
+        import 'stamp.dart';
+        $_header
+        $book
+        ''',
+        assets: stamps,
+        outputs: {_output: decodedMatches(contains('const StampAdapter()'))},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('can be bundled through a re-export', () async {
+      final result = await _build(
+        '''
+        import 'bundle.dart';
+        part 'book.charcoal.g.dart';
+        $book
+        ''',
+        assets: {
+          ...stamps,
+          'package_name|lib/bundle.dart': '''
+            export 'package:charcoal/charcoal.dart';
+            export 'stamp.dart';
+          ''',
+        },
+        outputs: {_output: decodedMatches(contains('const StampAdapter()'))},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('are not used when hidden', () async {
+      final result = await _build(
+        '''
+        import 'stamp.dart' hide StampAdapter;
+        $_header
+        $book
+        ''',
+        assets: stamps,
+      );
+
+      expect(result.succeeded, isFalse);
+      expect(
+        result.errors.join('\n'),
+        allOf(
+          contains('Book.a is a Stamp, which charcoal cannot serialize.'),
+          contains('this library needs to import it'),
+        ),
+      );
+    });
+
+    test('are not used through a prefix', () async {
+      final result = await _build(
+        '''
+        import 'stamp.dart' show Stamp;
+        import 'stamp.dart' as s show StampAdapter;
+        $_header
+        $book
+        ''',
+        assets: stamps,
+      );
+
+      expect(result.succeeded, isFalse);
+      expect(result.errors.join('\n'), contains('Book.a is a Stamp'));
+    });
+
+    test('are ignored when abstract', () async {
+      final result = await _build(
+        '''
+        $_header
+        $adapter
+        abstract class Other implements CharcoalAdapter<Stamp, String> {}
+        $book
+        ''',
+        outputs: {_output: decodedMatches(contains('const StampAdapter()'))},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('in scope but unused do not fail the build', () async {
+      final result = await _build(
+        '''
+        $_header
+        class const Broken(this.value)
+            implements CharcoalAdapter<DateTime, Object> {
+          final int value;
+          @override
+          Object encode(DateTime value) => 1;
+          @override
+          DateTime decode(Object json) => DateTime(2000);
+        }
+        @Charcoal()
+        class Book(this.title) with BookCharcoal {
+          final String title;
+        }
+        ''',
+        outputs: {_output: anything},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    group('fail the build on', () {
+      Future<void> expectAdapterError(String code, String message) async {
+        await _expectError('''
+          $_header
+          class Stamp {}
+          $code
+          @Charcoal()
+          class Book(this.a) with BookCharcoal {
+            final Stamp a;
+          }
+          ''', message);
+      }
+
+      const body = '''
+        @override
+        int encode(Stamp value) => 1;
+        @override
+        Stamp decode(int json) => Stamp();
+      ''';
+
+      test('a constructor with arguments', () async {
+        await _expectError(
+          '''
+          $_header
+          class Stamp {}
+          class const A([this.b = 1]) implements CharcoalAdapter<Stamp, int> {
+            final int b;
+            $body
+          }
+          @Charcoal()
+          class Book(this.a) with BookCharcoal {
+            final Stamp a;
+          }
+          ''',
+          'needs a const constructor with no arguments',
+        );
+      });
+
+      test('type parameters', () async {
+        await expectAdapterError(
+          '''
+          class const A<T>() implements CharcoalAdapter<Stamp, int> {
+            $body
+          }
+          ''',
+          'no type parameters',
+        );
+      });
+
+      test('a wire type charcoal cannot serialize', () async {
+        await expectAdapterError(
+          '''
+          class const A() implements CharcoalAdapter<Stamp, Object> {
+            @override
+            Object encode(Stamp value) => 1;
+            @override
+            Stamp decode(Object json) => Stamp();
+          }
+          ''',
+          'The adapter A writes a Object, which charcoal cannot serialize.',
+        );
+      });
+
+      test('a nullable adapted type', () async {
+        await expectAdapterError(
+          '''
+          class const A() implements CharcoalAdapter<Stamp?, int> {
+            @override
+            int encode(Stamp? value) => 1;
+            @override
+            Stamp? decode(int json) => null;
+          }
+          ''',
+          'must adapt a non-nullable type',
+        );
+      });
+
+      test('two adapters for one type', () async {
+        await _expectError(
+          '''
+          $_header
+          $adapter
+          class const Other() implements CharcoalAdapter<Stamp, int> {
+            @override
+            int encode(Stamp value) => 1;
+            @override
+            Stamp decode(int json) => Stamp();
+          }
+          @Charcoal()
+          class Book(this.a) with BookCharcoal {
+            final Stamp a;
+          }
+          ''',
+          'There are two adapters for Stamp in scope: StampAdapter, Other.',
+        );
+      });
+    });
+  });
+
   group('extension types', () {
     const id = 'extension type Id<T>(int value) {}';
 

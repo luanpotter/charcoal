@@ -22,6 +22,7 @@
 library;
 
 export 'src/charcoal.dart';
+export 'src/charcoal_adapter.dart';
 export 'src/charcoal_exception.dart';
 export 'src/charcoal_json.dart';
 export 'src/charcoal_json_reader.dart';
