@@ -558,6 +558,54 @@ void main() {
       expect(result.succeeded, isTrue);
     });
 
+    test('qualify static members of the class', () async {
+      final result = await _build(
+        '''
+        $_header
+        class Other {
+          static const first = 'other';
+        }
+        @Charcoal()
+        class Book({
+          this.a = first,
+          this.b = Book.first,
+          this.c = const [first, Other.first],
+          this.d = 'first \$first \${first}',
+          this.e = first == 'x',
+          this.f = first.length,
+        }) with BookCharcoal {
+          static const first = 'book';
+          final String a;
+          final String b;
+          final List<String> c;
+          final String d;
+          final bool e;
+          final int f;
+        }
+        ''',
+        outputs: {
+          _output: decodedMatches(
+            allOf([
+              contains(r'static const String $d0 = Book.first;'),
+              contains(r'static const String $d1 = Book.first;'),
+              contains(
+                r'static const List<String> $d2 = '
+                'const [Book.first, Other.first];',
+              ),
+              contains(
+                r'static const String $d3 = '
+                r"'first ${Book.first} ${Book.first}';",
+              ),
+              contains(r"static const bool $d4 = Book.first == 'x';"),
+              contains(r'static const int $d5 = Book.first.length;'),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
     test('keep a null when the default is not null', () async {
       final result = await _build(
         '''
