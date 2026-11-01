@@ -1,22 +1,28 @@
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
+import 'package:charcoal/charcoal.dart';
+import 'package:charcoal_builder/src/charcoal_config.dart';
 import 'package:charcoal_builder/src/model/class_model.dart';
 import 'package:charcoal_builder/src/model/field_type.dart';
 
 final _charcoalLibrary = Uri.parse('package:charcoal/src/charcoal.dart');
 
-final class LibraryReader(this._resolver) {
+final class LibraryReader(this._resolver, this._config) {
   final Resolver _resolver;
+  final CharcoalConfig _config;
   final List<String> errors = [];
 
   Future<List<ClassModel>> read(
     LibraryElement library, {
     required String partFile,
   }) async {
-    final annotated = library.classes.where(_isAnnotated).toList();
+    final annotated = library.classes
+        .where((element) => _annotationOf(element) != null)
+        .toList();
     if (annotated.isEmpty) {
       return [];
     }
@@ -28,11 +34,20 @@ final class LibraryReader(this._resolver) {
     return [for (final element in annotated) await _readClass(element)];
   }
 
-  bool _isAnnotated(ClassElement element) {
-    return element.metadata.annotations.any((annotation) {
-      final type = annotation.computeConstantValue()?.type?.element;
-      return type?.name == 'Charcoal' && type?.library?.uri == _charcoalLibrary;
-    });
+  DartObject? _annotationOf(ClassElement element) {
+    for (final annotation in element.metadata.annotations) {
+      final value = annotation.computeConstantValue();
+      final type = value?.type?.element;
+      if (type?.name == 'Charcoal' && type?.library?.uri == _charcoalLibrary) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  Omit _omitOf(ClassElement element) {
+    final name = _annotationOf(element)?.getField('omit')?.variable?.name;
+    return name == null ? _config.omit : Omit.values.byName(name);
   }
 
   bool _hasPart(LibraryElement library, String partFile) {
@@ -68,7 +83,12 @@ final class LibraryReader(this._resolver) {
         '$name has no usable constructor: '
         'it needs an unnamed or a primary one.',
       );
-      return ClassModel(name: name, constructor: name, fields: const []);
+      return ClassModel(
+        name: name,
+        constructor: name,
+        omit: _config.omit,
+        fields: const [],
+      );
     }
 
     final fields = _readFields(name, constructor);
@@ -79,6 +99,7 @@ final class LibraryReader(this._resolver) {
       constructor: constructor.name == 'new'
           ? name
           : '$name.${constructor.name}',
+      omit: _omitOf(element),
       fields: fields,
     );
   }

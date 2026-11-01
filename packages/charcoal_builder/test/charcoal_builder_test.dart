@@ -1,5 +1,6 @@
 import 'package:build_test/build_test.dart';
 import 'package:charcoal_builder/src/charcoal_builder.dart';
+import 'package:charcoal_builder/src/charcoal_config.dart';
 import 'package:test/test.dart';
 
 const _output = 'package_name|lib/book.charcoal.g.dart';
@@ -11,11 +12,12 @@ part 'book.charcoal.g.dart';
 Future<TestBuilderResult> _build(
   String source, {
   Map<String, Object> outputs = const {},
+  Map<String, dynamic> config = const {},
 }) async {
   final readerWriter = TestReaderWriter(rootPackage: 'package_name');
   await readerWriter.testing.loadIsolateSources();
   return testBuilder(
-    CharcoalBuilder(),
+    CharcoalBuilder(config: CharcoalConfig.fromMap(config)),
     {'package_name|lib/book.dart': source},
     outputs: outputs,
     readerWriter: readerWriter,
@@ -188,6 +190,201 @@ void main() {
       }, outputs: {});
 
       expect(result.succeeded, isTrue);
+    });
+  });
+
+  group('direct writer', () {
+    test('merges adjacent literals', () async {
+      final result = await _build(
+        '''
+        $_header
+        @Charcoal()
+        class Book(this.title, this.pages) with BookCharcoal {
+          final String title;
+          final int pages;
+        }
+        ''',
+        outputs: {
+          _output: decodedMatches(
+            allOf(
+              contains(r'''$sink.write('{"title":');'''),
+              contains(r'''$sink.write(',"pages":');'''),
+              isNot(contains(r'$comma')),
+            ),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('writes an empty class as one literal', () async {
+      final result = await _build(
+        '''
+        $_header
+        @Charcoal()
+        class Book() with BookCharcoal;
+        ''',
+        outputs: {_output: decodedMatches(contains(r"$sink.write('{}');"))},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('needs no flag when a later field is certain', () async {
+      final result = await _build(
+        '''
+        $_header
+        @Charcoal()
+        class Book(this.note, this.title, this.subtitle) with BookCharcoal {
+          final String? note;
+          final String title;
+          final String? subtitle;
+        }
+        ''',
+        outputs: {
+          _output: decodedMatches(
+            allOf(
+              contains(r"$sink.write(',');"),
+              contains(r'''$sink.write('"title":');'''),
+              contains(r'''$sink.write(',"subtitle":');'''),
+              isNot(contains(r'$comma')),
+            ),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('needs no flag for a single droppable field', () async {
+      final result = await _build(
+        '''
+        $_header
+        @Charcoal()
+        class Book(this.note) with BookCharcoal {
+          final String? note;
+        }
+        ''',
+        outputs: {_output: decodedMatches(isNot(contains(r'$comma')))},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('uses a flag only when every field may drop', () async {
+      final result = await _build(
+        '''
+        $_header
+        @Charcoal()
+        class Book(this.note, this.subtitle) with BookCharcoal {
+          final String? note;
+          final String? subtitle;
+        }
+        ''',
+        outputs: {
+          _output: decodedMatches(
+            allOf(
+              contains(r'var $comma = false;'),
+              contains(r"if ($comma) $sink.write(',');"),
+            ),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('escapes a dollar in a key', () async {
+      final result = await _build(
+        '''
+        $_header
+        @Charcoal()
+        class Book(this.\$count) with BookCharcoal {
+          final int \$count;
+        }
+        ''',
+        outputs: {_output: decodedMatches(contains(r'''{"\$count":'''))},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+  });
+
+  group('omit', () {
+    const book =
+        '''
+      $_header
+      @Charcoal()
+      class Book(this.note) with BookCharcoal {
+        final String? note;
+      }
+      ''';
+    const keepsNulls = r"'note': $it.note";
+    const dropsNulls = r"'note': ?$it.note";
+
+    test('drops nulls by default', () async {
+      final result = await _build(
+        book,
+        outputs: {_output: decodedMatches(contains(dropsNulls))},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('takes the default from the config', () async {
+      final result = await _build(
+        book,
+        config: {'omit': 'none'},
+        outputs: {_output: decodedMatches(contains(keepsNulls))},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('takes the annotation over the config', () async {
+      final result = await _build(
+        '''
+        $_header
+        @Charcoal(omit: Omit.nulls)
+        class Book(this.note) with BookCharcoal {
+          final String? note;
+        }
+        ''',
+        config: {'omit': 'none'},
+        outputs: {_output: decodedMatches(contains(dropsNulls))},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('takes the annotation over the default', () async {
+      final result = await _build(
+        '''
+        $_header
+        @Charcoal(omit: Omit.none)
+        class Book(this.note) with BookCharcoal {
+          final String? note;
+        }
+        ''',
+        outputs: {_output: decodedMatches(contains(keepsNulls))},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('refuses an unknown config value', () {
+      expect(
+        () => CharcoalConfig.fromMap({'omit': 'everything'}),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('refuses an unknown config key', () {
+      expect(
+        () => CharcoalConfig.fromMap({'discriminator': 'type'}),
+        throwsA(isA<ArgumentError>()),
+      );
     });
   });
 

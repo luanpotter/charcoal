@@ -1,5 +1,7 @@
+import 'package:charcoal/charcoal.dart';
 import 'package:charcoal_builder/src/model/class_model.dart';
 import 'package:charcoal_builder/src/model/field_type.dart';
+import 'package:charcoal_builder/src/write/json_writer.dart';
 import 'package:dart_style/dart_style.dart';
 
 abstract final class CharcoalWriter {
@@ -28,18 +30,42 @@ abstract final class CharcoalWriter {
 
   static String _mixin(ClassModel model) {
     final name = model.name;
-    final entries = model.fields.map(_encodeEntry).join(', ');
+    final entries = model.fields
+        .map((field) => _encodeEntry(model, field))
+        .join(', ');
     final arguments = model.fields.map(_decodeArgument).join(', ');
 
     return '''
 mixin ${name}Charcoal {
   Map<String, Object?> toMap() => \$encode(this as $name);
 
+  void writeJson(StringBuffer \$sink) => \$write(this as $name, \$sink);
+
+  String toJsonString() => encodeJsonString(this as $name);
+
   static Map<String, Object?> \$encode($name \$it) => {$entries};
+
+  static void \$write($name \$it, StringBuffer \$sink) {
+    ${JsonWriter.write(model)}
+  }
+
+  static String encodeJsonString($name \$it) {
+    final \$sink = StringBuffer();
+    \$write(\$it, \$sink);
+    return \$sink.toString();
+  }
 
   static $name fromMap(Map<String, Object?> \$json) {
     try {
       return \$decode(\$json);
+    } catch (\$error, \$stack) {
+      Error.throwWithStackTrace(CharcoalException('$name', \$error), \$stack);
+    }
+  }
+
+  static $name fromJsonString(String \$source) {
+    try {
+      return \$decode(CharcoalJson.decodeObject(\$source));
     } catch (\$error, \$stack) {
       Error.throwWithStackTrace(CharcoalException('$name', \$error), \$stack);
     }
@@ -50,12 +76,13 @@ mixin ${name}Charcoal {
 ''';
   }
 
-  static String _encodeEntry(FieldModel field) {
+  static String _encodeEntry(ClassModel model, FieldModel field) {
     final key = _key(field);
-    return switch (field.type) {
-      PrimitiveFieldType() => '$key: \$it.${field.name}',
-      NullableFieldType() => '$key: ?\$it.${field.name}',
-    };
+    final isDroppable =
+        field.type is NullableFieldType && model.omit == Omit.nulls;
+    return isDroppable
+        ? '$key: ?\$it.${field.name}'
+        : '$key: \$it.${field.name}';
   }
 
   static String _decodeArgument(FieldModel field) {
