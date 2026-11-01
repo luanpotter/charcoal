@@ -1,3 +1,7 @@
+## 0.0.3
+
+ - Bump version to keep all packages in the workspace in lockstep.
+
 ## 0.0.2
 
  - **FEAT**: Generate JSON-related methods ([#7](https://github.com/luanpotter/charcoal/issues/7)). ([c685e534](https://github.com/luanpotter/charcoal/commit/c685e534a21336b89529938f418017a1e5258990))
