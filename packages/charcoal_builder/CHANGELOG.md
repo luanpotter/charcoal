@@ -1,3 +1,13 @@
+## 0.0.5
+
+ - **PERF**: Hand-roll ultra-fast json decode ([#21](https://github.com/luanpotter/charcoal/issues/21)). ([6675ed4b](https://github.com/luanpotter/charcoal/commit/6675ed4bb11e36f8f126d6e762573501ca6ab49d))
+ - **FEAT**: Ameliorate adapters and codecs ([#27](https://github.com/luanpotter/charcoal/issues/27)). ([ca7398cd](https://github.com/luanpotter/charcoal/commit/ca7398cdec4feea41c1015ebc4036e2ad08c649f))
+ - **FEAT**: Add custom adapters ([#26](https://github.com/luanpotter/charcoal/issues/26)). ([83015240](https://github.com/luanpotter/charcoal/commit/830152401f9874d0947c6bc0b79d33b3f47eb6cd))
+ - **FEAT**: Support any sources of default param values ([#25](https://github.com/luanpotter/charcoal/issues/25)). ([9d767f6d](https://github.com/luanpotter/charcoal/commit/9d767f6df8b9f478e46d4891a71aa6daf32f7925))
+ - **FEAT**: Allow different omission options ([#24](https://github.com/luanpotter/charcoal/issues/24)). ([8fd7c449](https://github.com/luanpotter/charcoal/commit/8fd7c44918ae0b634362313320883384c8207c54))
+ - **FEAT**: Support extension types ([#22](https://github.com/luanpotter/charcoal/issues/22)). ([1a252c66](https://github.com/luanpotter/charcoal/commit/1a252c66805be4f48a1b6ac22850c1e396bbc671))
+ - **FEAT**: Support collections ([#18](https://github.com/luanpotter/charcoal/issues/18)). ([267b9ca1](https://github.com/luanpotter/charcoal/commit/267b9ca1ea58573ec7f859d0c0e22d9cf4e032e2))
+
 ## 0.0.4
 
  - **FEAT**: Support nested classes ([#15](https://github.com/luanpotter/charcoal/issues/15)). ([15ad8c9d](https://github.com/luanpotter/charcoal/commit/15ad8c9df1800082d76e57b5572d658f0f3a907f))
