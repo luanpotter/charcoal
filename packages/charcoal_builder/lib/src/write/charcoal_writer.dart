@@ -78,11 +78,18 @@ mixin ${name}Charcoal {
 
   static String _encodeEntry(ClassModel model, FieldModel field) {
     final key = _key(field);
+    final value = _encode(field.type, '\$it.${field.name}');
     final isDroppable =
         field.type is NullableFieldType && model.omit == Omit.nulls;
-    return isDroppable
-        ? '$key: ?\$it.${field.name}'
-        : '$key: \$it.${field.name}';
+    return isDroppable ? '$key: ?$value' : '$key: $value';
+  }
+
+  static String _encode(FieldType type, String value) {
+    return switch (type) {
+      EnumFieldType() => '$value.name',
+      NullableFieldType(inner: EnumFieldType()) => '$value?.name',
+      PrimitiveFieldType() || NullableFieldType() => value,
+    };
   }
 
   static String _decodeArgument(FieldModel field) {
@@ -95,6 +102,7 @@ mixin ${name}Charcoal {
       PrimitiveFieldType(primitive: DartPrimitive.double) =>
         '($value as num).toDouble()',
       PrimitiveFieldType(:final primitive) => '$value as ${primitive.typeName}',
+      EnumFieldType(:final name) => '$name.values.byName($value as String)',
       NullableFieldType(:final inner) =>
         'switch ($value) { '
             'null => null, '

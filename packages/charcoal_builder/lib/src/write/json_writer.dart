@@ -96,6 +96,11 @@ abstract final class JsonWriter() {
           DartPrimitive.double ||
           DartPrimitive.num => 'CharcoalJson.writeNumber(\$sink, $value);',
         });
+      case EnumFieldType():
+        out
+          ..literal('"')
+          ..code('\$sink.write($value.name);')
+          ..literal('"');
       case NullableFieldType(:final inner):
         out.code('if ($value case final \$v?) {');
         _writeValue(out, inner, r'$v');

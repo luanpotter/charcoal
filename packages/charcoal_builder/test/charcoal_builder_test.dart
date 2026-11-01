@@ -13,12 +13,13 @@ Future<TestBuilderResult> _build(
   String source, {
   Map<String, Object> outputs = const {},
   Map<String, dynamic> config = const {},
+  Map<String, String> assets = const {},
 }) async {
   final readerWriter = TestReaderWriter(rootPackage: 'package_name');
   await readerWriter.testing.loadIsolateSources();
   return await testBuilder(
     CharcoalBuilder(config: CharcoalConfig.fromMap(config)),
-    {'package_name|lib/book.dart': source},
+    {'package_name|lib/book.dart': source, ...assets},
     outputs: outputs,
     readerWriter: readerWriter,
   );
@@ -430,6 +431,89 @@ void main() {
     expect(result.succeeded, isTrue);
   });
 
+  group('enums', () {
+    const genre = 'enum Genre { fantasy, sciFi }';
+
+    test('go by name, with no escaping', () async {
+      final result = await _build(
+        '''
+        $_header
+        $genre
+        @Charcoal()
+        class Book(this.genre, this.subgenre) with BookCharcoal {
+          final Genre genre;
+          final Genre? subgenre;
+        }
+        ''',
+        outputs: {
+          _output: decodedMatches(
+            allOf([
+              contains(r"'genre': $it.genre.name"),
+              contains(r"'subgenre': ?$it.subgenre?.name"),
+              contains(r"Genre.values.byName($json['genre'] as String)"),
+              contains(r'final $v => Genre.values.byName($v as String)'),
+              contains(r'''$sink.write('{"genre":"');'''),
+              contains(r'$sink.write($it.genre.name);'),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('can come from another library', () async {
+      final result = await _build(
+        '''
+        import 'genre.dart';
+        $_header
+        @Charcoal()
+        class Book(this.genre) with BookCharcoal {
+          final Genre genre;
+        }
+        ''',
+        assets: {'package_name|lib/genre.dart': genre},
+        outputs: {_output: decodedMatches(contains('Genre.values.byName'))},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('fail the build when imported with a prefix', () async {
+      final result = await _build(
+        '''
+        import 'genre.dart' as g;
+        $_header
+        @Charcoal()
+        class Book(this.genre) with BookCharcoal {
+          final g.Genre genre;
+        }
+        ''',
+        assets: {'package_name|lib/genre.dart': genre},
+      );
+
+      expect(result.succeeded, isFalse);
+      expect(result.errors.join('\n'), contains('Book.genre is a Genre'));
+    });
+
+    test('fail the build when overriding name', () async {
+      await _expectError(
+        '''
+        $_header
+        enum Genre {
+          fantasy;
+          String get name => 'a"b';
+        }
+        @Charcoal()
+        class Book(this.genre) with BookCharcoal {
+          final Genre genre;
+        }
+        ''',
+        'Book.genre is a Genre',
+      );
+    });
+  });
+
   test('refuses every other kind of type', () async {
     final result = await _build('''
       import 'dart:async';
@@ -438,13 +522,12 @@ void main() {
 
       class String {}
       class Publisher {}
-      enum Genre { fantasy }
       extension type Id(int value) {}
 
       @Charcoal()
       class Book<T>(
         this.a, this.b, this.c, this.d, this.e, this.f, this.g,
-        this.h, this.i, this.j, this.k, this.l, this.m, this.n,
+        this.h, this.i, this.j, this.k, this.l, this.m,
       ) with BookCharcoal {
         final Object a;
         final Object? b;
@@ -458,14 +541,13 @@ void main() {
         final T j;
         final String k;
         final Publisher l;
-        final Genre m;
-        final Id n;
+        final Id m;
       }
       ''');
 
     final errors = result.errors.join('\n');
     expect(result.succeeded, isFalse);
-    for (final field in 'abcdefghijklmn'.split('')) {
+    for (final field in 'abcdefghijklm'.split('')) {
       expect(errors, contains('Book.$field is a'));
     }
   });
