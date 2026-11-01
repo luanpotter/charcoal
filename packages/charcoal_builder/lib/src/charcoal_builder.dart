@@ -1,13 +1,13 @@
-import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
-import 'package:charcoal_builder/src/charcoal_writer.dart';
+import 'package:charcoal_builder/src/read/library_reader.dart';
+import 'package:charcoal_builder/src/write/charcoal_writer.dart';
 
-final _charcoalLibrary = Uri.parse('package:charcoal/src/charcoal.dart');
+const _extension = '.charcoal.g.dart';
 
 class CharcoalBuilder implements Builder {
   @override
   Map<String, List<String>> get buildExtensions => const {
-    '.dart': ['.g.dart'],
+    '.dart': [_extension],
   };
 
   @override
@@ -17,25 +17,24 @@ class CharcoalBuilder implements Builder {
       return;
     }
 
-    final library = await buildStep.inputLibrary;
-    final classes = library.classes.where(_isAnnotated).map((e) => e.name);
+    final output = input.changeExtension(_extension);
+    final reader = LibraryReader(buildStep.resolver);
+    final classes = await reader.read(
+      await buildStep.inputLibrary,
+      partFile: output.pathSegments.last,
+    );
+
+    if (reader.errors.isNotEmpty) {
+      reader.errors.forEach(log.severe);
+      return;
+    }
     if (classes.isEmpty) {
       return;
     }
 
     await buildStep.writeAsString(
-      input.changeExtension('.g.dart'),
-      CharcoalWriter.write(
-        partOf: input.pathSegments.last,
-        classes: classes.nonNulls,
-      ),
+      output,
+      CharcoalWriter.write(partOf: input.pathSegments.last, classes: classes),
     );
-  }
-
-  bool _isAnnotated(ClassElement element) {
-    return element.metadata.annotations.any((annotation) {
-      final type = annotation.computeConstantValue()?.type?.element;
-      return type?.name == 'Charcoal' && type?.library?.uri == _charcoalLibrary;
-    });
   }
 }
