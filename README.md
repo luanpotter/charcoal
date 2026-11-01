@@ -5,9 +5,9 @@
 <h1 align="center">charcoal</h1>
 
 <p align="center">
-  <a title="CI" href="https://github.com/luanpotter/charcoal/actions/workflows/ci.yml"><img alt="CI status" src="https://github.com/luanpotter/charcoal/actions/workflows/ci.yml/badge.svg?branch=main"></a>
-  <a title="Pub" href="https://pub.dev/packages/charcoal"><img alt="Pub version" src="https://img.shields.io/pub/v/charcoal.svg"></a>
-  <a title="Melos" href="https://github.com/invertase/melos"><img alt="Maintained with Melos" src="https://img.shields.io/badge/maintained%20with-melos-f700ff.svg"></a>
+  <a title="CI" href="https://github.com/luanpotter/charcoal/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/luanpotter/charcoal/ci.yml?branch=main&logo=github&style=flat-square"></a>
+  <a title="Pub" href="https://pub.dev/packages/charcoal"><img alt="Pub version" src="https://img.shields.io/pub/v/charcoal?style=flat-square"></a>
+  <a title="Melos" href="https://github.com/invertase/melos"><img alt="Maintained with Melos" src="https://img.shields.io/badge/maintained%20with-melos-f700ff?style=flat-square"></a>
 </p>
 
 A highly opinionated Dart `build_runner` with a unified annotation. Generates JSON, copy, equality, hash and `toString` as direct code for any annotated data class, with the whole type graph resolved at build time: no registry, no runtime lookup, nor dynamic dispatch. Configurations (and errors) are checked at build time.
