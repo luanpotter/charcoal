@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="charcoal logo" width="96" height="96" src="https://raw.githubusercontent.com/luanpotter/charcoal/main/media/charcoal-6x.png">
+  <img alt="charcoal logo" width="96" src="https://raw.githubusercontent.com/luanpotter/charcoal/main/media/charcoal-6x.png">
 </p>
 
 <h1 align="center">charcoal</h1>
