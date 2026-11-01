@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 void main() {
   const map = {
     'title': 'Dune',
-    'pages': 412,
+    'pages': 420,
     'rating': 4.5,
     'isHardcover': true,
     'note': 'Reread',
@@ -15,7 +15,7 @@ void main() {
     final book = BookCharcoal.fromMap(map);
 
     expect(book.title, 'Dune');
-    expect(book.pages, 412);
+    expect(book.pages, 420);
     expect(book.rating, 4.5);
     expect(book.isHardcover, isTrue);
     expect(book.note, 'Reread');
@@ -43,7 +43,7 @@ void main() {
 
   test('wraps a wrong type', () {
     expect(
-      () => BookCharcoal.fromMap({...map, 'pages': '412'}),
+      () => BookCharcoal.fromMap({...map, 'pages': '420'}),
       throwsA(
         isA<CharcoalException>()
             .having((e) => e.type, 'type', 'Book')

@@ -1,10 +1,15 @@
 import 'package:build/build.dart';
+import 'package:charcoal_builder/src/charcoal_config.dart';
 import 'package:charcoal_builder/src/read/library_reader.dart';
 import 'package:charcoal_builder/src/write/charcoal_writer.dart';
 
 const _extension = '.charcoal.g.dart';
 
 class CharcoalBuilder implements Builder {
+  final CharcoalConfig config;
+
+  CharcoalBuilder({this.config = const CharcoalConfig()});
+
   @override
   Map<String, List<String>> get buildExtensions => const {
     '.dart': [_extension],
@@ -18,7 +23,7 @@ class CharcoalBuilder implements Builder {
     }
 
     final output = input.changeExtension(_extension);
-    final reader = LibraryReader(buildStep.resolver);
+    final reader = LibraryReader(buildStep.resolver, config);
     final classes = await reader.read(
       await buildStep.inputLibrary,
       partFile: output.pathSegments.last,
