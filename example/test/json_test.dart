@@ -3,11 +3,21 @@ import 'dart:convert';
 import 'package:charcoal/charcoal.dart';
 import 'package:charcoal_example/author.dart';
 import 'package:charcoal_example/book.dart';
+import 'package:charcoal_example/dimensions.dart';
+import 'package:charcoal_example/genre.dart';
 import 'package:charcoal_example/publisher.dart';
-import 'package:charcoal_example/series.dart';
 import 'package:test/test.dart';
 
-const _dune = Book(title: 'Dune', pages: 420, rating: 4.5, isHardcover: true);
+const _author = Author(penName: null, name: 'Frank Herbert');
+
+const _dune = Book(
+  title: 'Dune',
+  pageCount: 420,
+  rating: 4.5,
+  isHardcover: true,
+  genre: Genre.sciFi,
+  author: _author,
+);
 
 const String Function(Book) _encode = BookCharcoal.encodeJsonString;
 const Book Function(String) _decode = BookCharcoal.fromJsonString;
@@ -20,10 +30,12 @@ void main() {
       for (final title in titles) {
         final book = Book(
           title: title,
-          pages: 1,
+          pageCount: 1,
           rating: 1,
           isHardcover: false,
-          note: title,
+          genre: Genre.fantasy,
+          author: _author,
+          notes: title,
         );
         expect(book.toJsonString(), jsonEncode(book.toMap()));
       }
@@ -33,9 +45,11 @@ void main() {
       for (final rating in [0.0, 4.0, 4.5, -1.5, 1e21, 1e-7]) {
         final book = Book(
           title: '',
-          pages: -412,
+          pageCount: -412,
           rating: rating,
           isHardcover: true,
+          genre: Genre.fantasy,
+          author: _author,
         );
         expect(book.toJsonString(), jsonEncode(book.toMap()));
       }
@@ -43,12 +57,12 @@ void main() {
 
     test('every mix of dropped fields', () {
       for (final penName in const [null, 'Pen']) {
-        for (final born in const [null, 1920]) {
+        for (final birthYear in const [null, 1920]) {
           for (final isAlive in const [null, false]) {
             final author = Author(
               penName: penName,
               name: 'Frank',
-              born: born,
+              birthYear: birthYear,
               isAlive: isAlive,
             );
             expect(author.toJsonString(), jsonEncode(author.toMap()));
@@ -58,29 +72,30 @@ void main() {
     });
 
     test('a class whose every field can be dropped', () {
-      for (final name in const [null, 'Dune']) {
-        for (final position in const [null, 2]) {
-          for (final score in const [null, 4.5]) {
-            final series = Series(name: name, position: position, score: score);
-            expect(series.toJsonString(), jsonEncode(series.toMap()));
+      for (final widthCm in const [null, 13.5]) {
+        for (final heightCm in const [null, 20.0]) {
+          for (final weightKg in const <num?>[null, 1, 0.5]) {
+            final dimensions = Dimensions(
+              widthCm: widthCm,
+              heightCm: heightCm,
+              weightKg: weightKg,
+            );
+            expect(dimensions.toJsonString(), jsonEncode(dimensions.toMap()));
           }
         }
       }
-      expect(const Series().toJsonString(), '{}');
+      expect(const Dimensions().toJsonString(), '{}');
     });
 
     test('a class keeping nulls', () {
       for (final website in const [null, 'ace.com']) {
-        for (final founded in const [null, 1953]) {
-          for (final revenue in const <num>[1, 1.5]) {
-            final publisher = Publisher(
-              website: website,
-              name: 'Ace',
-              revenue: revenue,
-              founded: founded,
-            );
-            expect(publisher.toJsonString(), jsonEncode(publisher.toMap()));
-          }
+        for (final parent in const [null, Publisher(name: 'Penguin')]) {
+          final publisher = Publisher(
+            name: 'Ace',
+            website: website,
+            parent: parent,
+          );
+          expect(publisher.toJsonString(), jsonEncode(publisher.toMap()));
         }
       }
     });
@@ -88,27 +103,26 @@ void main() {
 
   group('omit', () {
     test('drops nulls by default', () {
-      expect(_dune.toJsonString(), isNot(contains('note')));
-      expect(_dune.toMap().containsKey('note'), isFalse);
+      expect(_dune.toJsonString(), isNot(contains('notes')));
+      expect(_dune.toMap().containsKey('notes'), isFalse);
     });
 
     test('keeps nulls with Omit.none', () {
-      const publisher = Publisher(website: null, name: 'Ace', revenue: 1);
+      const publisher = Publisher(name: 'Ace');
 
       expect(
         publisher.toJsonString(),
-        '{"website":null,"name":"Ace","revenue":1,"founded":null}',
+        '{"name":"Ace","website":null,"parent":null}',
       );
       expect(publisher.toMap(), {
-        'website': null,
         'name': 'Ace',
-        'revenue': 1,
-        'founded': null,
+        'website': null,
+        'parent': null,
       });
     });
 
     test('reads what each mode wrote', () {
-      const publisher = Publisher(website: null, name: 'Ace', revenue: 1);
+      const publisher = Publisher(name: 'Ace');
 
       expect(
         PublisherCharcoal.fromJsonString(publisher.toJsonString()).toMap(),
@@ -121,7 +135,8 @@ void main() {
     test('writes fields in constructor order', () {
       expect(
         _dune.toJsonString(),
-        '{"title":"Dune","pages":420,"rating":4.5,"isHardcover":true}',
+        '{"title":"Dune","pageCount":420,"rating":4.5,"isHardcover":true,'
+        '"genre":"sciFi","author":{"name":"Frank Herbert"}}',
       );
     });
 
@@ -129,17 +144,19 @@ void main() {
       final sink = StringBuffer();
       _dune.writeJson(sink);
       sink.write(',');
-      const Series(position: 1).writeJson(sink);
+      const Dimensions(widthCm: 13.5).writeJson(sink);
 
-      expect(sink.toString(), '${_dune.toJsonString()},{"position":1}');
+      expect(sink.toString(), '${_dune.toJsonString()},{"widthCm":13.5}');
     });
 
     test('refuses non-finite numbers', () {
       const book = Book(
         title: '',
-        pages: 1,
+        pageCount: 1,
         rating: double.nan,
         isHardcover: true,
+        genre: Genre.fantasy,
+        author: _author,
       );
 
       expect(book.toJsonString, throwsA(isA<JsonUnsupportedObjectError>()));

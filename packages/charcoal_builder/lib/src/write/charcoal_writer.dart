@@ -88,6 +88,12 @@ mixin ${name}Charcoal {
     return switch (type) {
       EnumFieldType() => '$value.name',
       NullableFieldType(inner: EnumFieldType()) => '$value?.name',
+      ClassFieldType(:final name) => '${name}Charcoal.\$encode($value)',
+      NullableFieldType(:final ClassFieldType inner) =>
+        'switch ($value) { '
+            'null => null, '
+            'final \$v => ${_encode(inner, r'$v')} '
+            '}',
       PrimitiveFieldType() || NullableFieldType() => value,
     };
   }
@@ -103,6 +109,8 @@ mixin ${name}Charcoal {
         '($value as num).toDouble()',
       PrimitiveFieldType(:final primitive) => '$value as ${primitive.typeName}',
       EnumFieldType(:final name) => '$name.values.byName($value as String)',
+      ClassFieldType(:final name) =>
+        '${name}Charcoal.\$decode($value as Map<String, Object?>)',
       NullableFieldType(:final inner) =>
         'switch ($value) { '
             'null => null, '

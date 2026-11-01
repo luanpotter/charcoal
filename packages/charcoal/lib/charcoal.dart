@@ -10,10 +10,10 @@
 /// @Charcoal()
 /// final class const Book({
 ///   required this.title,
-///   this.note,
+///   this.notes,
 /// }) with BookCharcoal {
 ///   final String title;
-///   final String? note;
+///   final String? notes;
 /// }
 /// ```
 ///

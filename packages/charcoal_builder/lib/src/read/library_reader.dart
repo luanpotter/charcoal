@@ -169,7 +169,8 @@ final class LibraryReader(this._resolver, this._config) {
   }
 
   FieldType? _fieldTypeOf(DartType type, LibraryElement library) {
-    final inner = _primitiveOf(type) ?? _enumOf(type, library);
+    final inner =
+        _primitiveOf(type) ?? _enumOf(type, library) ?? _classOf(type, library);
     if (inner != null && type.nullabilitySuffix == NullabilitySuffix.question) {
       return NullableFieldType(inner);
     }
@@ -182,10 +183,24 @@ final class LibraryReader(this._resolver, this._config) {
     if (element is! EnumElement || element.getGetter('name') != null) {
       return null;
     }
-    final name = element.name!;
-    final isVisible =
-        library.firstFragment.scope.lookup(name).getter == element;
-    return isVisible ? EnumFieldType(name) : null;
+    return _isVisible(element, library) ? EnumFieldType(element.name!) : null;
+  }
+
+  /// Null unless it has generated code that can decode a concrete instance.
+  FieldType? _classOf(DartType type, LibraryElement library) {
+    final element = type.element;
+    if (element is! ClassElement ||
+        _annotationOf(element) == null ||
+        element.isAbstract ||
+        element.isSealed ||
+        element.typeParameters.isNotEmpty) {
+      return null;
+    }
+    return _isVisible(element, library) ? ClassFieldType(element.name!) : null;
+  }
+
+  bool _isVisible(Element element, LibraryElement library) {
+    return library.firstFragment.scope.lookup(element.name!).getter == element;
   }
 
   /// Null for any other type, which becomes a build error naming the field.

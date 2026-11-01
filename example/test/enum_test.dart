@@ -1,38 +1,62 @@
 import 'dart:convert';
 
 import 'package:charcoal/charcoal.dart';
-import 'package:charcoal_example/listing.dart';
+import 'package:charcoal_example/author.dart';
+import 'package:charcoal_example/book.dart';
+import 'package:charcoal_example/genre.dart';
+import 'package:charcoal_example/language.dart';
 import 'package:test/test.dart';
 
+const _author = Author(penName: null, name: 'Frank Herbert');
+
+const _dune = Book(
+  title: 'Dune',
+  pageCount: 420,
+  rating: 4.5,
+  isHardcover: true,
+  genre: Genre.sciFi,
+  author: _author,
+);
+
+const _english = Book(
+  title: 'Dune',
+  pageCount: 420,
+  rating: 4.5,
+  isHardcover: true,
+  genre: Genre.sciFi,
+  author: _author,
+  language: Language.english,
+);
+
 void main() {
-  const listing = Listing(genre: Genre.sciFi, subgenre: Genre.fantasy);
+  final map = _dune.toMap();
 
   test('writes names', () {
-    expect(listing.toMap(), {'genre': 'sciFi', 'subgenre': 'fantasy'});
-    expect(listing.toJsonString(), '{"genre":"sciFi","subgenre":"fantasy"}');
+    expect(_english.toMap(), containsPair('genre', 'sciFi'));
+    expect(_english.toMap(), containsPair('language', 'english'));
+    expect(_english.toJsonString(), jsonEncode(_english.toMap()));
+    expect(_english.toJsonString(), contains('"language":"english"'));
   });
 
   test('drops a null enum', () {
-    const dropped = Listing(genre: Genre.fantasy);
-
-    expect(dropped.toMap(), {'genre': 'fantasy'});
-    expect(dropped.toJsonString(), jsonEncode(dropped.toMap()));
+    expect(map.containsKey('language'), isFalse);
+    expect(_dune.toJsonString(), jsonEncode(map));
   });
 
   test('round trips', () {
-    final decoded = ListingCharcoal.fromJsonString(listing.toJsonString());
+    final decoded = BookCharcoal.fromJsonString(_english.toJsonString());
 
     expect(decoded.genre, Genre.sciFi);
-    expect(decoded.subgenre, Genre.fantasy);
-    expect(ListingCharcoal.fromMap({'genre': 'sciFi'}).subgenre, isNull);
+    expect(decoded.language, Language.english);
+    expect(BookCharcoal.fromMap(map).language, isNull);
   });
 
   test('wraps an unknown name', () {
     expect(
-      () => ListingCharcoal.fromMap({'genre': 'horror'}),
+      () => BookCharcoal.fromMap({...map, 'genre': 'horror'}),
       throwsA(
         isA<CharcoalException>()
-            .having((e) => e.type, 'type', 'Listing')
+            .having((e) => e.type, 'type', 'Book')
             .having((e) => e.cause, 'cause', isA<ArgumentError>()),
       ),
     );
@@ -40,7 +64,7 @@ void main() {
 
   test('wraps a wrong type', () {
     expect(
-      () => ListingCharcoal.fromMap({'genre': 1}),
+      () => BookCharcoal.fromMap({...map, 'genre': 1}),
       throwsA(isA<CharcoalException>()),
     );
   });

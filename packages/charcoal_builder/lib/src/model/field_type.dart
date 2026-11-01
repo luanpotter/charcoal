@@ -18,6 +18,10 @@ final class const EnumFieldType(this.name) extends FieldType {
   final String name;
 }
 
+final class const ClassFieldType(this.name) extends FieldType {
+  final String name;
+}
+
 final class const NullableFieldType(this.inner) extends FieldType {
   final FieldType inner;
 }

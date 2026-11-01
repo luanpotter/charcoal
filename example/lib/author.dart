@@ -6,11 +6,11 @@ part 'author.charcoal.g.dart';
 final class const Author({
   required this.penName,
   required this.name,
-  this.born,
+  this.birthYear,
   this.isAlive,
 }) with AuthorCharcoal {
   final String? penName;
   final String name;
-  final int? born;
+  final int? birthYear;
   final bool? isAlive;
 }

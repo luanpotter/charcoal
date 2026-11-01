@@ -101,6 +101,8 @@ abstract final class JsonWriter() {
           ..literal('"')
           ..code('\$sink.write($value.name);')
           ..literal('"');
+      case ClassFieldType(:final name):
+        out.code('${name}Charcoal.\$write($value, \$sink);');
       case NullableFieldType(:final inner):
         out.code('if ($value case final \$v?) {');
         _writeValue(out, inner, r'$v');
