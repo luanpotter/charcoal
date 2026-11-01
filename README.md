@@ -55,6 +55,11 @@ final json = revised.toJsonString();
 Generate the code with `dart run build_runner build`, which you can add to your build script.
 
 
+## Benchmarks
+
+The goal of Charcoal is to bring the ergonomics of `dart_mappable` but without the dynamic dispatching. The comparison with the other alternatives is not just speed then, but feature set. That being said, you can see how it compares to all three (`json_serializable`, `dart_mappable`, and `freezed`) using our [benchmarks](https://github.com/luanpotter/charcoal/blob/main/benchmark/README.md).
+
+
 ## Contributing
 
 See our [CONTRIBUTING](https://github.com/luanpotter/charcoal/blob/main/CONTRIBUTING.md) guide.

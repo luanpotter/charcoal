@@ -5,9 +5,18 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 root="$PWD"
 
 libraries=(charcoal json_serializable dart_mappable freezed)
-if [[ "${1:-}" == "--only" ]]; then
-  libraries=("$2")
-fi
+rounds=3
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  --only) libraries=("$2") ;;
+  --rounds) rounds="$2" ;;
+  *)
+    echo "Usage: bench.sh [--only library] [--rounds count]" >&2
+    exit 1
+    ;;
+  esac
+  shift 2
+done
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -36,7 +45,12 @@ build() {
 
 for library in "${libraries[@]}"; do
   build "$library"
-  "$work/$library/bench" | tee "$work/results/$library.txt"
+  for ((round = 1; round <= rounds; round++)); do
+    echo "$library: round $round of $rounds" >&2
+    "$work/$library/bench" >>"$work/$library.rounds"
+  done
+  awk -f benchmark/median.awk "$work/$library.rounds" |
+    tee "$work/results/$library.txt"
 done
 
 if [[ "${#libraries[@]}" -gt 1 ]]; then
