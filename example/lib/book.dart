@@ -3,6 +3,7 @@ import 'package:charcoal_example/author.dart';
 import 'package:charcoal_example/book_details.dart';
 import 'package:charcoal_example/dimensions.dart';
 import 'package:charcoal_example/genre.dart';
+import 'package:charcoal_example/isbn.dart';
 import 'package:charcoal_example/language.dart';
 import 'package:charcoal_example/publisher.dart';
 
@@ -16,6 +17,7 @@ final class const Book({
   required this.isHardcover,
   required this.genre,
   required this.author,
+  this.isbn,
   this.language,
   this.publisher,
   this.dimensions,
@@ -28,6 +30,7 @@ final class const Book({
   final bool isHardcover;
   final Genre genre;
   final Author author;
+  final Isbn? isbn;
   final Language? language;
   final Publisher? publisher;
   final Dimensions? dimensions;

@@ -22,6 +22,23 @@ final class const ClassFieldType(this.name) extends FieldType {
   final String name;
 }
 
+/// An extension type, which is the same as its representation in JSON.
+final class const ExtensionFieldType({
+  required this.typeName,
+  required this.constructor,
+  required this.field,
+  required this.representation,
+}) extends FieldType {
+  /// How to declare it, such as `Id<Book>`.
+  final String typeName;
+
+  /// How to call it, such as `Id`, leaving type arguments to inference.
+  final String constructor;
+
+  final String field;
+  final FieldType representation;
+}
+
 /// Which is the fastest codec an iterable can use.
 enum IterableKind() {
   /// Writes with an index and, if its contents allow, is reused by `toMap`.

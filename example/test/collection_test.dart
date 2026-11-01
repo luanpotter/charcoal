@@ -25,6 +25,7 @@ BookDetails _details() {
     relatedGenres: const {Genre.fantasy},
     tags: SplayTreeSet.of(['desert', 'classic']),
     pageCountByChapter: SplayTreeMap.of({'b"c': 2, 'a': 1}),
+    relatedBookIds: const [],
     quotes: const [
       'The spice must flow.',
       'I must not fear. Fear is the mind-killer.',
@@ -44,6 +45,7 @@ BookDetails _empty() {
     relatedGenres: const {},
     tags: SplayTreeSet(),
     pageCountByChapter: SplayTreeMap(),
+    relatedBookIds: const [],
     quotes: const [],
     awards: const {},
     translations: const {},
@@ -58,6 +60,7 @@ BookDetails _requiredOnly() {
     relatedGenres: const {Genre.sciFi},
     tags: SplayTreeSet.of(['classic']),
     pageCountByChapter: SplayTreeMap.of({'a': 1}),
+    relatedBookIds: const [],
   );
 }
 

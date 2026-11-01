@@ -2,7 +2,9 @@ import 'dart:collection';
 
 import 'package:charcoal/charcoal.dart';
 import 'package:charcoal_example/author.dart';
+import 'package:charcoal_example/book.dart';
 import 'package:charcoal_example/genre.dart';
+import 'package:charcoal_example/id.dart';
 import 'package:charcoal_example/language.dart';
 import 'package:charcoal_example/translation.dart';
 
@@ -16,6 +18,7 @@ final class BookDetails({
   required this.relatedGenres,
   required this.tags,
   required this.pageCountByChapter,
+  required this.relatedBookIds,
   this.quotes,
   this.awards,
   this.translations,
@@ -26,6 +29,7 @@ final class BookDetails({
   final Set<Genre> relatedGenres;
   final SplayTreeSet<String> tags;
   final SplayTreeMap<String, int> pageCountByChapter;
+  final List<Id<Book>> relatedBookIds;
   final Iterable<String>? quotes;
   final Map<String, int>? awards;
   final Map<Language, Translation>? translations;

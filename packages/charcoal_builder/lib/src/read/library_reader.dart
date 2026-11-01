@@ -173,11 +173,59 @@ final class LibraryReader(this._resolver, this._config) {
         _primitiveOf(type) ??
         _enumOf(type, library) ??
         _classOf(type, library) ??
+        _extensionOf(type, library) ??
         _collectionOf(type, library);
     if (inner != null && type.nullabilitySuffix == NullabilitySuffix.question) {
       return NullableFieldType(inner);
     }
     return inner;
+  }
+
+  /// Null unless generated code can name, unwrap and construct it.
+  FieldType? _extensionOf(DartType type, LibraryElement library) {
+    final element = type.element;
+    if (element is! ExtensionTypeElement || type is! InterfaceType) {
+      return null;
+    }
+    final name = element.name!;
+    final field = element.representation.name!;
+    final constructor = element.primaryConstructor;
+    final isLocal = element.library == library;
+    final isAccessible =
+        isLocal || (!field.startsWith('_') && !constructor.isPrivate);
+    if (!isAccessible || !_isVisible(element, library)) {
+      return null;
+    }
+    if (type.typeArguments.any((argument) => !_isNameable(argument, library))) {
+      return null;
+    }
+
+    final representation = _fieldTypeOf(element.representation.type, library);
+    if (representation == null) {
+      return null;
+    }
+    final arguments = type.typeArguments
+        .map((argument) => argument.getDisplayString())
+        .join(', ');
+    return ExtensionFieldType(
+      typeName: arguments.isEmpty ? name : '$name<$arguments>',
+      constructor: constructor.name == 'new'
+          ? name
+          : '$name.${constructor.name}',
+      field: field,
+      representation: representation,
+    );
+  }
+
+  bool _isNameable(DartType type, LibraryElement library) {
+    final element = type.element;
+    if (element != null && !_isVisible(element, library)) {
+      return false;
+    }
+    return type is! InterfaceType ||
+        type.typeArguments.every((argument) {
+          return _isNameable(argument, library);
+        });
   }
 
   /// Null unless it can be rebuilt and every type it holds is supported.
