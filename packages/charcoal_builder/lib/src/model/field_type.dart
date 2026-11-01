@@ -39,6 +39,19 @@ final class const ExtensionFieldType({
   final FieldType representation;
 }
 
+/// A type converted by a user's adapter, which is its [wire] type in JSON.
+final class const AdapterFieldType({
+  required this.typeName,
+  required this.adapter,
+  required this.wire,
+}) extends FieldType {
+  final String typeName;
+
+  /// How to refer to the adapter, such as `const DateAdapter()`.
+  final String adapter;
+  final FieldType wire;
+}
+
 /// Which is the fastest codec an iterable can use.
 enum IterableKind() {
   /// Writes with an index and, if its contents allow, is reused by `toMap`.

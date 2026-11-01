@@ -11,11 +11,26 @@ import 'package:charcoal_builder/src/model/field_type.dart';
 import 'package:charcoal_builder/src/read/default_value_source.dart';
 
 final Uri _charcoalLibrary = Uri.parse('package:charcoal/src/charcoal.dart');
+final Uri _adapterLibrary = Uri.parse(
+  'package:charcoal/src/charcoal_adapter.dart',
+);
+
+final class const _Adapter(this.element, this.adapted, this.wire) {
+  final ClassElement element;
+  final DartType adapted;
+  final DartType wire;
+}
 
 final class LibraryReader(this._resolver, this._config) {
   final Resolver _resolver;
   final CharcoalConfig _config;
   final List<String> errors = [];
+
+  /// Every adapter the library being read can see.
+  List<_Adapter> _adapters = const [];
+
+  /// A wire type has to be supported on its own, or adapters could loop.
+  bool _isReadingWire = false;
 
   Future<List<ClassModel>> read(
     LibraryElement library, {
@@ -32,6 +47,7 @@ final class LibraryReader(this._resolver, this._config) {
       errors.add("Missing part: add `part '$partFile';` to this library.");
     }
 
+    _adapters = _adaptersIn(library);
     return [for (final element in annotated) await _readClass(element)];
   }
 
@@ -105,6 +121,99 @@ final class LibraryReader(this._resolver, this._config) {
     );
   }
 
+  /// Whatever implements `CharcoalAdapter` and is in scope without a prefix.
+  List<_Adapter> _adaptersIn(LibraryElement library) {
+    final classes = {
+      ...library.classes,
+      for (final import in library.firstFragment.libraryImports)
+        if (import.prefix == null)
+          ...import.namespace.definedNames2.values.whereType<ClassElement>(),
+    };
+    return [
+      for (final element in classes)
+        if (!element.isAbstract)
+          for (final supertype in element.allSupertypes)
+            if (supertype.element.name == 'CharcoalAdapter' &&
+                supertype.element.library.uri == _adapterLibrary)
+              _Adapter(
+                element,
+                supertype.typeArguments.first,
+                supertype.typeArguments.last,
+              ),
+    ];
+  }
+
+  void _addError(String error) {
+    if (!errors.contains(error)) {
+      errors.add(error);
+    }
+  }
+
+  FieldType? _adapterOf(DartType type, LibraryElement library) {
+    if (_isReadingWire) {
+      return null;
+    }
+    final typeSystem = library.typeSystem;
+    final nonNullable = typeSystem.promoteToNonNull(type);
+    final matches = _adapters.where((adapter) {
+      return typeSystem.promoteToNonNull(adapter.adapted) == nonNullable;
+    }).toList();
+    if (matches.isEmpty) {
+      return null;
+    }
+    if (matches.length > 1) {
+      final names = matches.map((adapter) => adapter.element.name).join(', ');
+      _addError(
+        'There are two adapters for $nonNullable in scope: $names. '
+        'Use `hide` on an import or export to pick one.',
+      );
+      return null;
+    }
+    return _useAdapter(matches.single, library);
+  }
+
+  FieldType? _useAdapter(_Adapter adapter, LibraryElement library) {
+    final element = adapter.element;
+    final adapted = adapter.adapted;
+    final label = 'The adapter ${element.name}';
+
+    final constructor = element.unnamedConstructor;
+    final hasUsableConstructor =
+        constructor != null &&
+        constructor.isConst &&
+        constructor.formalParameters.isEmpty;
+    if (!hasUsableConstructor || element.typeParameters.isNotEmpty) {
+      _addError(
+        '$label needs a const constructor with no arguments, '
+        'and no type parameters.',
+      );
+      return null;
+    }
+    if (adapted.nullabilitySuffix != NullabilitySuffix.none) {
+      _addError('$label must adapt a non-nullable type.');
+      return null;
+    }
+    if (!_isNameable(adapted, library)) {
+      _addError('$label is for $adapted, which this library cannot name.');
+      return null;
+    }
+
+    _isReadingWire = true;
+    final wire = _fieldTypeOf(adapter.wire, library);
+    _isReadingWire = false;
+    if (wire == null) {
+      _addError(
+        '$label writes a ${adapter.wire}, which charcoal cannot serialize.',
+      );
+      return null;
+    }
+    return AdapterFieldType(
+      typeName: adapted.getDisplayString(),
+      adapter: 'const ${element.name}()',
+      wire: wire,
+    );
+  }
+
   /// Read from the syntax, as the generated mixin may not exist yet.
   Future<bool> _hasMixin(ClassElement element) async {
     final node = await _resolver.astNodeFor(element.firstFragment);
@@ -138,7 +247,8 @@ final class LibraryReader(this._resolver, this._config) {
       final type = _fieldTypeOf(parameter.type, constructor.library);
       if (type == null) {
         errors.add(
-          '$label is a ${parameter.type}, which charcoal cannot serialize.',
+          '$label is a ${parameter.type}, which charcoal cannot serialize. '
+          'If it has a CharcoalAdapter, this library needs to import it.',
         );
         continue;
       }
@@ -201,6 +311,7 @@ final class LibraryReader(this._resolver, this._config) {
 
   FieldType? _fieldTypeOf(DartType type, LibraryElement library) {
     final inner =
+        _adapterOf(type, library) ??
         _primitiveOf(type) ??
         _enumOf(type, library) ??
         _classOf(type, library) ??
