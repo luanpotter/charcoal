@@ -134,7 +134,7 @@ final class LibraryReader(this._resolver, this._config) {
         errors.add('$label has a default, which is not supported yet.');
       }
 
-      final type = _fieldTypeOf(parameter.type);
+      final type = _fieldTypeOf(parameter.type, constructor.library);
       if (type == null) {
         errors.add(
           '$label is a ${parameter.type}, which charcoal cannot serialize.',
@@ -168,12 +168,24 @@ final class LibraryReader(this._resolver, this._config) {
     }
   }
 
-  FieldType? _fieldTypeOf(DartType type) {
-    if (type.nullabilitySuffix == NullabilitySuffix.question) {
-      final inner = _primitiveOf(type);
-      return inner == null ? null : NullableFieldType(inner);
+  FieldType? _fieldTypeOf(DartType type, LibraryElement library) {
+    final inner = _primitiveOf(type) ?? _enumOf(type, library);
+    if (inner != null && type.nullabilitySuffix == NullabilitySuffix.question) {
+      return NullableFieldType(inner);
     }
-    return _primitiveOf(type);
+    return inner;
+  }
+
+  /// Null if generated code could not name it, or if `name` is overridden.
+  FieldType? _enumOf(DartType type, LibraryElement library) {
+    final element = type.element;
+    if (element is! EnumElement || element.getGetter('name') != null) {
+      return null;
+    }
+    final name = element.name!;
+    final isVisible =
+        library.firstFragment.scope.lookup(name).getter == element;
+    return isVisible ? EnumFieldType(name) : null;
   }
 
   /// Null for any other type, which becomes a build error naming the field.
