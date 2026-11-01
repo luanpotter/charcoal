@@ -42,6 +42,7 @@ final class const Book({
   required this.otherAuthors,
   required this.tags,
   required this.awards,
+  required this.publishedAt,
   this.notes,
 }) with BookCharcoal {
   final String title;
@@ -53,6 +54,7 @@ final class const Book({
   final List<Author> otherAuthors;
   final List<String> tags;
   final Map<String, int> awards;
+  final DateTime publishedAt;
   final String? notes;
 }
 

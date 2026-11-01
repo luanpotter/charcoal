@@ -38,6 +38,7 @@ abstract class Book with _$Book {
     required List<Author> otherAuthors,
     required List<String> tags,
     required Map<String, int> awards,
+    required DateTime publishedAt,
     String? notes,
   }) = _Book;
 

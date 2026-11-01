@@ -23,6 +23,7 @@ Map<String, Object?> bookPayload(int seed) {
     'otherAuthors': [for (var i = 0; i < 3; i++) _authorPayload(seed + i)],
     'tags': ['classic', 'desert', 'tag $seed'],
     'awards': {'Hugo': 1966, 'Nebula': 1965},
+    'publishedAt': DateTime.utc(1900 + seed % 100).toIso8601String(),
     'notes': 'Some notes about book "$seed".',
   };
 }

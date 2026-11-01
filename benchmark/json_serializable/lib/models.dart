@@ -49,6 +49,7 @@ final class Book {
   final List<Author> otherAuthors;
   final List<String> tags;
   final Map<String, int> awards;
+  final DateTime publishedAt;
   final String? notes;
 
   const Book({
@@ -61,6 +62,7 @@ final class Book {
     required this.otherAuthors,
     required this.tags,
     required this.awards,
+    required this.publishedAt,
     this.notes,
   });
 
