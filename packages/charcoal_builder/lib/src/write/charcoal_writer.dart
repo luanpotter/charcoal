@@ -31,7 +31,9 @@ abstract final class CharcoalWriter() {
     final entries = model.fields
         .map((field) => JsonWriter.encodeEntry(model, field))
         .join(', ');
-    final arguments = model.fields.map(JsonWriter.decodeArgument).join(', ');
+    final arguments = model.fields.indexed
+        .map((entry) => JsonWriter.decodeArgument(entry.$2, entry.$1))
+        .join(', ');
 
     return '''
 mixin ${name}Charcoal {
@@ -73,6 +75,8 @@ mixin ${name}Charcoal {
   }
 
   static const List<String> \$keys = [${JsonWriter.keys(model)}];
+
+  ${JsonWriter.defaults(model)}
 
   static $name \$read(CharcoalJsonReader \$r) {
     ${JsonWriter.read(model)}

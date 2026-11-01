@@ -7,12 +7,31 @@ abstract final class JsonWriter() {
   static String encodeEntry(ClassModel model, FieldModel field) {
     final key = _mapKeyOf(field);
     final value = _encode(field.type, '\$it.${field.name}');
-    return _isDroppable(model, field) ? '$key: ?$value' : '$key: $value';
+    if (!_isDroppable(model, field)) {
+      return '$key: $value';
+    }
+    return field.type is NullableFieldType
+        ? '$key: ?$value'
+        : 'if (\$it.${field.name}.isNotEmpty) $key: $value';
   }
 
-  static String decodeArgument(FieldModel field) {
-    final value = _decode(field.type, '\$json[${_mapKeyOf(field)}]');
+  static String decodeArgument(FieldModel field, int index) {
+    final key = _mapKeyOf(field);
+    final decoded = _decode(field.type, '\$json[$key]');
+    final value = field.defaultValue == null
+        ? decoded
+        : '\$json.containsKey($key) ? $decoded : \$d$index';
     return field.isNamedParameter ? '${field.name}: $value' : value;
+  }
+
+  /// One constant per default, typed so that it means what it does in the
+  /// parameter, where the context is also constant.
+  static String defaults(ClassModel model) {
+    return [
+      for (final (index, field) in model.fields.indexed)
+        if (field.defaultValue case final value?)
+          'static const ${_typeOf(field.type)} \$d$index = $value;',
+    ].join('\n');
   }
 
   static String _mapKeyOf(FieldModel field) {
@@ -122,7 +141,8 @@ abstract final class JsonWriter() {
     final out = StringBuffer();
     final fields = model.fields;
     for (final (index, field) in fields.indexed) {
-      out.writeln('${_nullableTypeOf(field.type)} \$f$index;');
+      final initial = field.defaultValue == null ? '' : ' = \$d$index';
+      out.writeln('${_nullableTypeOf(field.type)} \$f$index$initial;');
     }
     out
       ..writeln(r'if ($r.enterObject()) {')
@@ -270,8 +290,33 @@ abstract final class JsonWriter() {
     return (out..literal('}')).finish();
   }
 
+  /// Only what decoding brings back to the same value can be dropped.
   static bool _isDroppable(ClassModel model, FieldModel field) {
-    return field.type is NullableFieldType && model.omit == Omit.nulls;
+    if (model.omit == Omit.none) {
+      return false;
+    }
+    if (field.type is NullableFieldType) {
+      return field.defaultValue == null || field.isDefaultNull;
+    }
+    return model.omit == Omit.empty &&
+        field.isDefaultEmpty &&
+        _canBeEmpty(field.type);
+  }
+
+  static bool _canBeEmpty(FieldType type) {
+    return switch (type) {
+      PrimitiveFieldType(primitive: DartPrimitive.string) => true,
+      IterableFieldType() || MapFieldType() => true,
+      _ => false,
+    };
+  }
+
+  static void _writePresentValue(_Statements out, FieldModel field) {
+    if (field.type case NullableFieldType(:final inner)) {
+      _writeValue(out, inner, r'$v');
+    } else {
+      _writeValue(out, field.type, '\$it.${field.name}');
+    }
   }
 
   static void _writeCertain(
@@ -292,7 +337,7 @@ abstract final class JsonWriter() {
     out
       ..code(_ifPresent(field))
       ..literal('$before${_keyOf(field)}');
-    _writeValue(out, _innerOf(field), r'$v');
+    _writePresentValue(out, field);
     out
       ..literal(after)
       ..code('}');
@@ -309,7 +354,7 @@ abstract final class JsonWriter() {
         out.code(r"if ($comma) $sink.write(',');");
       }
       out.literal(_keyOf(field));
-      _writeValue(out, _innerOf(field), r'$v');
+      _writePresentValue(out, field);
       if (index < fields.length - 1) {
         out.code(r'$comma = true;');
       }
@@ -318,11 +363,9 @@ abstract final class JsonWriter() {
   }
 
   static String _ifPresent(FieldModel field) {
-    return 'if (\$it.${field.name} case final \$v?) {';
-  }
-
-  static FieldType _innerOf(FieldModel field) {
-    return (field.type as NullableFieldType).inner;
+    return field.type is NullableFieldType
+        ? 'if (\$it.${field.name} case final \$v?) {'
+        : 'if (\$it.${field.name}.isNotEmpty) {';
   }
 
   static String _keyOf(FieldModel field) {

@@ -46,8 +46,6 @@ BookDetails _empty() {
     tags: SplayTreeSet(),
     pageCountByChapter: SplayTreeMap(),
     relatedBookIds: const [],
-    quotes: const [],
-    awards: const {},
     translations: const {},
   );
 }
@@ -92,6 +90,8 @@ void main() {
       'portuguese': {
         'title': 'Duna',
         'translator': {'name': 'Luan'},
+        'edition': 1,
+        'originalLanguage': 'english',
       },
     });
     expect(details.toJsonString(), contains('{"portuguese":{"title":"Duna"'));

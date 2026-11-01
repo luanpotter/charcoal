@@ -529,6 +529,98 @@ void main() {
     expect(result.succeeded, isTrue);
   });
 
+  group('parameter defaults', () {
+    test('come from a typed constant', () async {
+      final result = await _build(
+        '''
+        $_header
+        @Charcoal()
+        class Book({
+          this.pageCount = 1,
+          this.tags = const [],
+        }) with BookCharcoal {
+          final int pageCount;
+          final List<String> tags;
+        }
+        ''',
+        outputs: {
+          _output: decodedMatches(
+            allOf([
+              contains(r'static const int $d0 = 1;'),
+              contains(r'static const List<String> $d1 = const [];'),
+              contains(r"$json.containsKey('pageCount') ?"),
+              contains(r'int? $f0 = $d0;'),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('keep a null when the default is not null', () async {
+      final result = await _build(
+        '''
+        $_header
+        @Charcoal()
+        class Book({
+          this.notes = 'none',
+          this.title = null,
+        }) with BookCharcoal {
+          final String? notes;
+          final String? title;
+        }
+        ''',
+        outputs: {
+          _output: decodedMatches(
+            allOf([
+              contains(r"'notes': $it.notes"),
+              contains(r"'title': ?$it.title"),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('allow dropping only an empty default with Omit.empty', () async {
+      final result = await _build(
+        '''
+        $_header
+        @Charcoal(omit: Omit.empty)
+        class Book({
+          this.title = '',
+          this.tags = const [],
+          this.subtitle = 'none',
+          this.pageCount = 0,
+          required this.notes,
+        }) with BookCharcoal {
+          final String title;
+          final List<String> tags;
+          final String subtitle;
+          final int pageCount;
+          final String notes;
+        }
+        ''',
+        outputs: {
+          _output: decodedMatches(
+            allOf([
+              contains(r"if ($it.title.isNotEmpty) 'title': $it.title"),
+              contains(r"if ($it.tags.isNotEmpty) 'tags': $it.tags"),
+              contains(r"'subtitle': $it.subtitle"),
+              contains(r"'pageCount': $it.pageCount"),
+              contains(r"'notes': $it.notes"),
+              contains(r'if ($it.title.isNotEmpty) {'),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+  });
+
   group('extension types', () {
     const id = 'extension type Id<T>(int value) {}';
 
@@ -1064,19 +1156,6 @@ void main() {
         }
         ''',
         'Book.title must be a `this.title` parameter.',
-      );
-    });
-
-    test('a parameter default', () async {
-      await _expectError(
-        '''
-        $_header
-        @Charcoal()
-        class Book({this.pageCount = 1}) with BookCharcoal {
-          final int pageCount;
-        }
-        ''',
-        'Book.pageCount has a default',
       );
     });
 

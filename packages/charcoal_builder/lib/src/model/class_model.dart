@@ -19,8 +19,16 @@ final class const FieldModel({
   required this.name,
   required this.type,
   required this.isNamedParameter,
+  this.defaultValue,
+  this.isDefaultNull = false,
+  this.isDefaultEmpty = false,
 }) {
   final String name;
   final FieldType type;
   final bool isNamedParameter;
+
+  /// The source of the parameter's default, if it has one.
+  final String? defaultValue;
+  final bool isDefaultNull;
+  final bool isDefaultEmpty;
 }
