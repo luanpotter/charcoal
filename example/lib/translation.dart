@@ -8,9 +8,11 @@ part 'translation.charcoal.g.dart';
 final class const Translation({
   required this.title,
   required this.translator,
-  this.edition = 1,
+  this.edition = _firstEdition,
   this.originalLanguage = Language.english,
 }) with TranslationCharcoal {
+  static const int _firstEdition = 1;
+
   final String title;
   final Author translator;
   final int edition;

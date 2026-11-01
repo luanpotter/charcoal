@@ -8,6 +8,7 @@ import 'package:charcoal/charcoal.dart';
 import 'package:charcoal_builder/src/charcoal_config.dart';
 import 'package:charcoal_builder/src/model/class_model.dart';
 import 'package:charcoal_builder/src/model/field_type.dart';
+import 'package:charcoal_builder/src/read/default_value_source.dart';
 
 final Uri _charcoalLibrary = Uri.parse('package:charcoal/src/charcoal.dart');
 
@@ -91,7 +92,7 @@ final class LibraryReader(this._resolver, this._config) {
       );
     }
 
-    final fields = _readFields(name, constructor);
+    final fields = await _readFields(element, constructor);
     _checkOtherFields(element, fields);
 
     return ClassModel(
@@ -121,11 +122,14 @@ final class LibraryReader(this._resolver, this._config) {
         element.constructors.where((e) => e.isPrimary).firstOrNull;
   }
 
-  List<FieldModel> _readFields(String name, ConstructorElement constructor) {
+  Future<List<FieldModel>> _readFields(
+    ClassElement element,
+    ConstructorElement constructor,
+  ) async {
     final fields = <FieldModel>[];
     for (final parameter in constructor.formalParameters) {
       final parameterName = parameter.name!;
-      final label = '$name.$parameterName';
+      final label = '${element.name}.$parameterName';
       if (parameter is! FieldFormalParameterElement) {
         errors.add('$label must be a `this.$parameterName` parameter.');
         continue;
@@ -144,13 +148,32 @@ final class LibraryReader(this._resolver, this._config) {
           name: parameterName,
           type: type,
           isNamedParameter: parameter.isNamed,
-          defaultValue: parameter.defaultValueCode,
+          defaultValue: await _defaultSourceOf(parameter, element),
           isDefaultNull: defaultValue?.isNull ?? false,
           isDefaultEmpty: defaultValue != null && _isEmpty(defaultValue),
         ),
       );
     }
     return fields;
+  }
+
+  Future<String?> _defaultSourceOf(
+    FormalParameterElement parameter,
+    ClassElement owner,
+  ) async {
+    if (!parameter.hasDefaultValue) {
+      return null;
+    }
+    final node = await _resolver.astNodeFor(
+      parameter.firstFragment,
+      resolve: true,
+    );
+    final expression = node is FormalParameter
+        ? node.defaultClause?.value
+        : null;
+    return expression == null
+        ? parameter.defaultValueCode
+        : DefaultValueSource.of(expression, owner);
   }
 
   bool _isEmpty(DartObject value) {
