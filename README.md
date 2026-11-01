@@ -1,6 +1,14 @@
-# Charcoal
+<p align="center">
+  <img alt="charcoal logo" width="96" height="96" src="https://raw.githubusercontent.com/luanpotter/charcoal/main/media/charcoal-6x.png">
+</p>
 
-[![ci](https://github.com/luanpotter/charcoal/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/luanpotter/charcoal/actions/workflows/ci.yml)
+<h1 align="center">charcoal</h1>
+
+<p align="center">
+  <a title="CI" href="https://github.com/luanpotter/charcoal/actions/workflows/ci.yml"><img alt="CI status" src="https://github.com/luanpotter/charcoal/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a title="Pub" href="https://pub.dev/packages/charcoal"><img alt="Pub version" src="https://img.shields.io/pub/v/charcoal.svg"></a>
+  <a title="Melos" href="https://github.com/invertase/melos"><img alt="Maintained with Melos" src="https://img.shields.io/badge/maintained%20with-melos-f700ff.svg"></a>
+</p>
 
 A highly opinionated Dart `build_runner` with a unified annotation. Generates JSON, copy, equality, hash and `toString` as direct code for any annotated data class, with the whole type graph resolved at build time: no registry, no runtime lookup, nor dynamic dispatch. Configurations (and errors) are checked at build time.
 

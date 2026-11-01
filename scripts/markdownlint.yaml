@@ -9,8 +9,11 @@ MD012:
 MD013: false
 MD022:
   lines_above: 2
+MD033:
+  allowed_elements: [a, h1, img, p]
 MD035:
   style: "---"
+MD041: false
 MD046:
   style: fenced
 MD048:
