@@ -1,0 +1,13 @@
+name: bench
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  benchmark_harness: any
+  charcoal: any
+
+dev_dependencies:
+  build_runner: any
+  charcoal_builder: any

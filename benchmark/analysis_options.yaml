@@ -1,0 +1,7 @@
+# Projects are assembled by scripts/bench.sh, which is where they get analyzed.
+formatter:
+  trailing_commas: preserve
+
+analyzer:
+  exclude:
+    - "**"
