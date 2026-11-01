@@ -102,6 +102,133 @@ abstract final class JsonWriter() {
     return ofClass == null ? literal : '$ofClass.of($literal)';
   }
 
+  /// The keys `$read` looks for, in the order it expects them.
+  static String keys(ClassModel model) {
+    return model.fields.map(_mapKeyOf).join(', ');
+  }
+
+  /// The body of `$read`, which builds no map.
+  static String read(ClassModel model) {
+    final out = StringBuffer();
+    final fields = model.fields;
+    for (final (index, field) in fields.indexed) {
+      out.writeln('${_nullableTypeOf(field.type)} \$f$index;');
+    }
+    out
+      ..writeln(r'if ($r.enterObject()) {')
+      ..writeln(r'var $next = 0;')
+      ..writeln('do {')
+      ..writeln(r'final $field = $r.readField($keys, $next);')
+      ..writeln(r'switch ($field) {');
+    for (final (index, field) in fields.indexed) {
+      out.writeln('case $index:');
+      _read(out, field.type, '\$f$index', 0);
+    }
+    out
+      ..writeln(r'default: $r.skipValue();')
+      ..writeln('}')
+      ..writeln(r'$next = $field + 1;')
+      ..writeln(r'} while ($r.nextInObject());')
+      ..writeln('}');
+
+    final arguments = fields.indexed
+        .map((entry) {
+          final (index, field) = entry;
+          final local = field.type is NullableFieldType
+              ? '\$f$index'
+              : '\$f$index!';
+          return field.isNamedParameter ? '${field.name}: $local' : local;
+        })
+        .join(', ');
+    out.writeln('return ${model.constructor}($arguments);');
+    return out.toString();
+  }
+
+  static void _read(
+    StringBuffer out,
+    FieldType type,
+    String target,
+    int depth,
+  ) {
+    final collection = '\$c$depth';
+    final item = '\$e$depth';
+    final next = depth + 1;
+    switch (type) {
+      case PrimitiveFieldType(:final primitive):
+        final method = switch (primitive) {
+          DartPrimitive.string => 'readString',
+          DartPrimitive.int => 'readInt',
+          DartPrimitive.double => 'readDouble',
+          DartPrimitive.num => 'readNum',
+          DartPrimitive.bool => 'readBool',
+        };
+        out.writeln('$target = \$r.$method();');
+      case EnumFieldType(:final name):
+        out.writeln('$target = $name.values.byName(\$r.readString());');
+      case ClassFieldType(:final name):
+        out.writeln('$target = ${name}Charcoal.\$read(\$r);');
+      case IterableFieldType(:final element, :final kind, :final ofClass):
+        final elementType = _typeOf(element);
+        final isSet = kind == IterableKind.set;
+        out
+          ..writeln(
+            'final $collection = <$elementType>${isSet ? '{}' : '[]'};',
+          )
+          ..writeln(r'if ($r.enterArray()) {')
+          ..writeln('do {')
+          ..writeln('final $elementType $item;');
+        _read(out, element, item, next);
+        out
+          ..writeln('$collection.add($item);')
+          ..writeln(r'} while ($r.nextInArray());')
+          ..writeln('}')
+          ..writeln('$target = ${_built(ofClass, collection)};');
+      case MapFieldType(:final key, value: final valueType, :final ofClass):
+        final readKey = key is EnumFieldType
+            ? '${key.name}.values.byName(\$r.readKey())'
+            : r'$r.readKey()';
+        out
+          ..writeln(
+            'final $collection = '
+            '<${_typeOf(key)}, ${_typeOf(valueType)}>{};',
+          )
+          ..writeln(r'if ($r.enterObject()) {')
+          ..writeln('do {')
+          ..writeln('final \$k$depth = $readKey;')
+          ..writeln('final ${_typeOf(valueType)} $item;');
+        _read(out, valueType, item, next);
+        out
+          ..writeln('$collection[\$k$depth] = $item;')
+          ..writeln(r'} while ($r.nextInObject());')
+          ..writeln('}')
+          ..writeln('$target = ${_built(ofClass, collection)};');
+      case NullableFieldType(:final inner):
+        out
+          ..writeln(r'if ($r.tryReadNull()) {')
+          ..writeln('$target = null;')
+          ..writeln('} else {');
+        _read(out, inner, target, depth);
+        out.writeln('}');
+    }
+  }
+
+  static String _nullableTypeOf(FieldType type) {
+    return type is NullableFieldType ? _typeOf(type) : '${_typeOf(type)}?';
+  }
+
+  static String _typeOf(FieldType type) {
+    return switch (type) {
+      PrimitiveFieldType(:final primitive) => primitive.typeName,
+      EnumFieldType(:final name) || ClassFieldType(:final name) => name,
+      IterableFieldType(:final element, :final kind, :final ofClass) =>
+        '${ofClass ?? (kind == IterableKind.set ? 'Set' : 'List')}'
+            '<${_typeOf(element)}>',
+      MapFieldType(:final key, value: final valueType, :final ofClass) =>
+        '${ofClass ?? 'Map'}<${_typeOf(key)}, ${_typeOf(valueType)}>',
+      NullableFieldType(:final inner) => '${_typeOf(inner)}?',
+    };
+  }
+
   /// The body of `$write`, which builds no map.
   static String write(ClassModel model) {
     final out = _Statements()..literal('{');

@@ -10,11 +10,6 @@ const int _surrogateTrail = 0xdc00;
 
 /// What generated JSON code needs and cannot import from a part.
 abstract final class CharcoalJson() {
-  /// Decodes [source], which must hold a JSON object.
-  static Map<String, Object?> decodeObject(String source) {
-    return jsonDecode(source) as Map<String, Object?>;
-  }
-
   /// Writes a number exactly as `jsonEncode` does, refusing NaN and infinities.
   static void writeNumber(StringBuffer sink, num value) {
     if (!value.isFinite) {
