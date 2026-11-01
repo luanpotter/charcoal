@@ -2,7 +2,7 @@ name: charcoal
 description: >-
   Unified annotation for generating ultra-fast JSON, copy, equals, hash code,
   and toString, with the type graph resolved at build time.
-version: 0.0.3
+version: 0.0.4
 repository: https://github.com/luanpotter/charcoal/tree/main/packages/charcoal
 issue_tracker: https://github.com/luanpotter/charcoal/issues
 resolution: workspace

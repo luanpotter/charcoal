@@ -1,3 +1,7 @@
+## 0.0.4
+
+ - **FEAT**: Support nested classes ([#15](https://github.com/luanpotter/charcoal/issues/15)). ([15ad8c9d](https://github.com/luanpotter/charcoal/commit/15ad8c9df1800082d76e57b5572d658f0f3a907f))
+
 ## 0.0.3
 
  - **FEAT**: Support enum fields ([#12](https://github.com/luanpotter/charcoal/issues/12)). ([10a6a7cd](https://github.com/luanpotter/charcoal/commit/10a6a7cd7834603f1915f17699dbe9075e391aa5))

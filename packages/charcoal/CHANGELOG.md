@@ -1,3 +1,7 @@
+## 0.0.4
+
+ - **FEAT**: Support nested classes ([#15](https://github.com/luanpotter/charcoal/issues/15)). ([15ad8c9d](https://github.com/luanpotter/charcoal/commit/15ad8c9df1800082d76e57b5572d658f0f3a907f))
+
 ## 0.0.3
 
  - Bump version to keep all packages in the workspace in lockstep.
