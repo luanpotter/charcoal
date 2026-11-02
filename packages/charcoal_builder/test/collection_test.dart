@@ -46,7 +46,7 @@ void main() {
           output: decodedMatches(
             allOf([
               contains(r"'tags': [for (final $e0 in $it.tags) $e0]"),
-              contains(r"'genres': [for (final $e0 in $it.genres) $e0.name]"),
+              contains(r'[for (final $e0 in $it.genres) EnumName($e0).name]'),
               contains(r'$e0.key: BookCharcoal.$encode($e0.value)'),
               contains(r'for (final $e0 in $it.sequels.entries) {'),
             ]),
@@ -70,8 +70,8 @@ void main() {
         outputs: {
           output: decodedMatches(
             allOf([
-              contains(r'[for (final $e1 in $e0) $e1.name]'),
-              contains(r'$it.shelves[$i0][$i1].name'),
+              contains(r'[for (final $e1 in $e0) EnumName($e1).name]'),
+              contains(r'EnumName($it.shelves[$i0][$i1]).name'),
             ]),
           ),
         },
@@ -121,9 +121,59 @@ void main() {
         outputs: {
           output: decodedMatches(
             allOf([
-              contains(r'$e0.key.name: $e0.value'),
-              contains(r'Language.values.byName($e0.key as String):'),
-              contains(r'$sink.write($e0.key.name);'),
+              contains(r'EnumName($e0.key).name: $e0.value'),
+              contains(r'Language.values.byName($e0.key):'),
+              contains(r'$sink.write(EnumName($e0.key).name);'),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('allow int map keys, as strings in JSON', () async {
+      final result = await build(
+        '''
+        $header
+        @Charcoal()
+        class Book(this.awards) with BookCharcoal {
+          final Map<int, String> awards;
+        }
+        ''',
+        outputs: {
+          output: decodedMatches(
+            allOf([
+              contains(r'$e0.key.toString(): $e0.value'),
+              contains(r'int.parse($e0.key):'),
+              contains(r'int.parse($r.readKey())'),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('allow map keys of extension types over those', () async {
+      final result = await build(
+        '''
+        $header
+        extension type Id(int value) {}
+        extension type Isbn(String value) {}
+        @Charcoal()
+        class Book(this.byId, this.byIsbn) with BookCharcoal {
+          final Map<Id, String> byId;
+          final Map<Isbn, String> byIsbn;
+        }
+        ''',
+        outputs: {
+          output: decodedMatches(
+            allOf([
+              contains(r'($e0.key as int).toString(): $e0.value'),
+              contains(r'(int.parse($e0.key)) as Id:'),
+              contains(r"'byIsbn': $it.byIsbn"),
+              contains(r'($e0.key) as Isbn:'),
             ]),
           ),
         },
@@ -161,7 +211,7 @@ void main() {
           final List a;
           final List<Object> b;
           final Set<Publisher> c;
-          final Map<int, String> d;
+          final Map<double, String> d;
           final Map<String?, String> e;
           final List<List<Publisher>> f;
         }

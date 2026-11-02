@@ -1,5 +1,4 @@
 import 'package:charcoal_builder/src/model/field_type.dart';
-import 'package:charcoal_builder/src/write/json/enum_codec.dart';
 import 'package:charcoal_builder/src/write/json/field_codec.dart';
 import 'package:charcoal_builder/src/write/json/statements.dart';
 
@@ -16,9 +15,6 @@ final class NullableCodec(this._type) extends FieldCodec {
 
   @override
   String convert(String value, int depth) {
-    if (_inner is EnumCodec) {
-      return '$value?.name';
-    }
     return 'switch ($value) { '
         'null => null, '
         'final \$v => ${_inner.encode(r'$v', depth)} '

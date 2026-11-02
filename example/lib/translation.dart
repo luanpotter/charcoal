@@ -4,17 +4,21 @@ import 'package:charcoal_example/language.dart';
 
 part 'translation.charcoal.g.dart';
 
-@Charcoal()
+@Charcoal(omit: Omit.empty)
 final class const Translation({
   required this.title,
   required this.translator,
-  this.edition = _firstEdition,
+  this.revision = _firstRevision,
+  this.reviewers = const [],
   this.originalLanguage = Language.english,
+  this.notes = '',
 }) with TranslationCharcoal {
-  static const int _firstEdition = 1;
+  static const int _firstRevision = 0;
 
   final String title;
   final Author translator;
-  final int edition;
-  final Language? originalLanguage;
+  final int revision;
+  final List<Author> reviewers;
+  final Language originalLanguage;
+  final String notes;
 }

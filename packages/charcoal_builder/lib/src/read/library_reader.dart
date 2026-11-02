@@ -29,9 +29,6 @@ final class LibraryReader(this._resolver, this._config) {
   /// Every adapter the library being read can see.
   List<_Adapter> _adapters = const [];
 
-  /// A wire type has to be supported on its own, or adapters could loop.
-  bool _isReadingWire = false;
-
   Future<List<ClassModel>> read(
     LibraryElement library, {
     required String partFile,
@@ -150,9 +147,6 @@ final class LibraryReader(this._resolver, this._config) {
   }
 
   FieldType? _adapterOf(DartType type, LibraryElement library) {
-    if (_isReadingWire) {
-      return null;
-    }
     final typeSystem = library.typeSystem;
     final nonNullable = typeSystem.promoteToNonNull(type);
     final matches = _adapters.where((adapter) {
@@ -198,12 +192,24 @@ final class LibraryReader(this._resolver, this._config) {
       return null;
     }
 
-    _isReadingWire = true;
-    final wire = _fieldTypeOf(adapter.wire, library);
-    _isReadingWire = false;
-    if (wire == null) {
+    final adaptedElement = adapted.element;
+    if (adaptedElement is ClassElement &&
+        _annotationOf(adaptedElement) != null) {
       _addError(
-        '$label writes a ${adapter.wire}, which charcoal cannot serialize.',
+        '$label is for $adapted, which already is a @Charcoal class.',
+      );
+      return null;
+    }
+
+    final wire = adapter.wire.nullabilitySuffix == NullabilitySuffix.none
+        ? _primitiveOf(adapter.wire)
+        : null;
+    final isWireAllowed =
+        wire is PrimitiveFieldType && wire.primitive != DartPrimitive.num;
+    if (!isWireAllowed) {
+      _addError(
+        '$label writes a ${adapter.wire}, '
+        'but it can only write an int, a double, a String or a bool.',
       );
       return null;
     }
@@ -253,18 +259,37 @@ final class LibraryReader(this._resolver, this._config) {
         continue;
       }
       final defaultValue = parameter.computeConstantValue();
-      fields.add(
-        FieldModel(
-          name: parameterName,
-          type: type,
-          isNamedParameter: parameter.isNamed,
-          defaultValue: await _defaultSourceOf(parameter, element),
-          isDefaultNull: defaultValue?.isNull ?? false,
-          isDefaultEmpty: defaultValue != null && _isEmpty(defaultValue),
-        ),
+      final field = FieldModel(
+        name: parameterName,
+        type: type,
+        isNamedParameter: parameter.isNamed,
+        defaultValue: await _defaultSourceOf(parameter, element),
+        isDefaultNull: defaultValue?.isNull ?? false,
+        isDefaultEmpty: defaultValue != null && _isEmpty(defaultValue),
       );
+      _checkOmit(label, field, _omitOf(element));
+      fields.add(field);
     }
     return fields;
+  }
+
+  /// Whatever gets dropped has to decode back to exactly what it was.
+  void _checkOmit(String label, FieldModel field, Omit omit) {
+    final type = field.type;
+    final hasNonNullDefault =
+        field.defaultValue != null && !field.isDefaultNull;
+    if (type is NullableFieldType && hasNonNullDefault && omit != Omit.none) {
+      errors.add(
+        '$label defaults to a value that is not null, so a dropped null '
+        'could not come back: use Omit.none or remove the default.',
+      );
+    }
+    if (omit == Omit.empty && type.canBeEmpty && !field.isDefaultEmpty) {
+      errors.add(
+        '$label can be dropped by Omit.empty, so a missing key has to decode '
+        'to it: give it a default of zero or empty.',
+      );
+    }
   }
 
   Future<String?> _defaultSourceOf(
@@ -287,7 +312,8 @@ final class LibraryReader(this._resolver, this._config) {
   }
 
   bool _isEmpty(DartObject value) {
-    return value.toStringValue() == '' ||
+    return value.toIntValue() == 0 ||
+        value.toDoubleValue() == 0 ||
         (value.toListValue()?.isEmpty ?? false) ||
         (value.toSetValue()?.isEmpty ?? false) ||
         (value.toMapValue()?.isEmpty ?? false);
@@ -323,22 +349,12 @@ final class LibraryReader(this._resolver, this._config) {
     return inner;
   }
 
-  /// Null unless generated code can name, unwrap and construct it.
+  /// Null unless generated code can name it and its representation.
   FieldType? _extensionOf(DartType type, LibraryElement library) {
     final element = type.element;
-    if (element is! ExtensionTypeElement || type is! InterfaceType) {
-      return null;
-    }
-    final name = element.name!;
-    final field = element.representation.name!;
-    final constructor = element.primaryConstructor;
-    final isLocal = element.library == library;
-    final isAccessible =
-        isLocal || (!field.startsWith('_') && !constructor.isPrivate);
-    if (!isAccessible || !_isVisible(element, library)) {
-      return null;
-    }
-    if (type.typeArguments.any((argument) => !_isNameable(argument, library))) {
+    if (element is! ExtensionTypeElement ||
+        type is! InterfaceType ||
+        !_isNameable(type, library)) {
       return null;
     }
 
@@ -346,16 +362,13 @@ final class LibraryReader(this._resolver, this._config) {
     if (representation == null) {
       return null;
     }
+    final name = element.name!;
     final arguments = type.typeArguments
         .map((argument) => argument.getDisplayString())
         .join(', ');
     return ExtensionFieldType(
-      typeName: arguments.isEmpty ? name : '$name<$arguments>',
-      constructor: constructor.name == 'new'
-          ? name
-          : '$name.${constructor.name}',
-      field: field,
-      representation: representation,
+      arguments.isEmpty ? name : '$name<$arguments>',
+      representation,
     );
   }
 
@@ -430,9 +443,24 @@ final class LibraryReader(this._resolver, this._config) {
     if (type.nullabilitySuffix != NullabilitySuffix.none) {
       return null;
     }
-    return type.isDartCoreString
-        ? const PrimitiveFieldType(DartPrimitive.string)
-        : _enumOf(type, library);
+    final extension = _extensionOf(type, library);
+    if (extension is ExtensionFieldType) {
+      final representation = extension.representation;
+      return representation is PrimitiveFieldType &&
+              _isPrimitiveKey(representation)
+          ? extension
+          : null;
+    }
+    final primitive = _primitiveOf(type);
+    if (primitive is PrimitiveFieldType) {
+      return _isPrimitiveKey(primitive) ? primitive : null;
+    }
+    return _enumOf(type, library);
+  }
+
+  bool _isPrimitiveKey(PrimitiveFieldType type) {
+    return type.primitive == DartPrimitive.string ||
+        type.primitive == DartPrimitive.int;
   }
 
   /// The class, if generated code can name it and call its `of` constructor.
@@ -448,10 +476,10 @@ final class LibraryReader(this._resolver, this._config) {
     return isUsable ? element.name : null;
   }
 
-  /// Null if generated code could not name it, or if `name` is overridden.
+  /// Null if generated code could not name it.
   FieldType? _enumOf(DartType type, LibraryElement library) {
     final element = type.element;
-    if (element is! EnumElement || element.getGetter('name') != null) {
+    if (element is! EnumElement) {
       return null;
     }
     return _isVisible(element, library) ? EnumFieldType(element.name!) : null;

@@ -30,7 +30,7 @@ BookDetails _details() {
       'The spice must flow.',
       'I must not fear. Fear is the mind-killer.',
     ],
-    awards: const {'Hugo': 1966, 'Nebula': 1965},
+    awardsByYear: const {1966: 'Hugo', 1965: 'Nebula'},
     translations: const {
       Language.portuguese: Translation(title: 'Duna', translator: _translator),
     },
@@ -80,7 +80,7 @@ void main() {
     expect(map['tags'], ['classic', 'desert']);
     expect(map['quotes'], hasLength(2));
     expect(map['pageCountByChapter'], {'a': 1, 'b"c': 2});
-    expect(map['awards'], {'Hugo': 1966, 'Nebula': 1965});
+    expect(map['awardsByYear'], {'1966': 'Hugo', '1965': 'Nebula'});
   });
 
   test('writes enum map keys by name', () {
@@ -90,8 +90,8 @@ void main() {
       'portuguese': {
         'title': 'Duna',
         'translator': {'name': 'Luan'},
-        'edition': 1,
         'originalLanguage': 'english',
+        'notes': '',
       },
     });
     expect(details.toJsonString(), contains('{"portuguese":{"title":"Duna"'));
@@ -118,7 +118,8 @@ void main() {
     expect(decoded.tags, isA<SplayTreeSet<String>>());
     expect(decoded.pageCountByChapter, isA<SplayTreeMap<String, int>>());
     expect(decoded.quotes, isA<Iterable<String>>());
-    expect(decoded.awards, isA<Map<String, int>>());
+    expect(decoded.awardsByYear, isA<Map<int, String>>());
+    expect(decoded.awardsByYear[1966], 'Hugo');
     expect(decoded.translations, isA<Map<Language, Translation>>());
     expect(
       decoded.translations?[Language.portuguese]?.translator.name,
@@ -169,7 +170,7 @@ void main() {
       },
       {
         ...map,
-        'awards': {'Hugo': 'first'},
+        'awardsByYear': {'first': 'Hugo'},
       },
       {
         ...map,

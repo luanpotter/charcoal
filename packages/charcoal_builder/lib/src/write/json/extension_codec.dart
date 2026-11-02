@@ -8,6 +8,8 @@ final class ExtensionCodec(this._type) extends FieldCodec {
 
   FieldCodec get _representation => FieldCodec.of(_type.representation);
 
+  String _unwrapped(String value) => '($value as ${_representation.typeName})';
+
   @override
   String get typeName => _type.typeName;
 
@@ -16,12 +18,12 @@ final class ExtensionCodec(this._type) extends FieldCodec {
 
   @override
   String convert(String value, int depth) {
-    return _representation.encode('$value.${_type.field}', depth);
+    return _representation.encode(_unwrapped(value), depth);
   }
 
   @override
   String decode(String value, int depth) {
-    return '${_type.constructor}(${_representation.decode(value, depth)})';
+    return '(${_representation.decode(value, depth)}) as $typeName';
   }
 
   @override
@@ -29,11 +31,11 @@ final class ExtensionCodec(this._type) extends FieldCodec {
     final raw = '\$x$depth';
     out.writeln('final ${_representation.typeName} $raw;');
     _representation.read(out, raw, depth + 1);
-    out.writeln('$target = ${_type.constructor}($raw);');
+    out.writeln('$target = $raw as $typeName;');
   }
 
   @override
   void write(Statements out, String value, int depth) {
-    _representation.write(out, '$value.${_type.field}', depth);
+    _representation.write(out, _unwrapped(value), depth);
   }
 }

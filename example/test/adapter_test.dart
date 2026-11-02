@@ -10,7 +10,6 @@ final DateTime _date = DateTime.utc(1965, 8);
 
 BookDetails _details({
   Price? price,
-  PageRange? excerpt,
   List<DateTime> reprintDates = const [],
 }) {
   return BookDetails(
@@ -22,27 +21,20 @@ BookDetails _details({
     pageCountByChapter: SplayTreeMap(),
     relatedBookIds: const [],
     price: price,
-    excerpt: excerpt,
     reprintDates: reprintDates,
   );
 }
 
 void main() {
-  final full = _details(
-    price: const Price(999),
-    excerpt: const PageRange(10, 20),
-    reprintDates: [_date, _date],
-  );
+  final full = _details(price: const Price(999), reprintDates: [_date, _date]);
   final text = _date.toIso8601String();
 
   test('writes the wire type', () {
     final map = full.toMap();
 
     expect(map['price'], 999);
-    expect(map['excerpt'], [10, 20]);
     expect(map['reprintDates'], [text, text]);
     expect(full.toJsonString(), contains('"price":999'));
-    expect(full.toJsonString(), contains('"excerpt":[10,20]'));
     expect(full.toJsonString(), contains('"reprintDates":["$text","$text"]'));
   });
 
@@ -55,11 +47,10 @@ void main() {
     final empty = _details();
 
     expect(empty.toMap().containsKey('price'), isFalse);
-    expect(empty.toMap().containsKey('reprintDates'), isFalse);
     expect(BookDetailsCharcoal.fromMap(empty.toMap()).price, isNull);
     expect(BookDetailsCharcoal.fromMap(empty.toMap()).reprintDates, isEmpty);
     expect(
-      BookDetailsCharcoal.fromJsonString(empty.toJsonString()).excerpt,
+      BookDetailsCharcoal.fromJsonString(empty.toJsonString()).price,
       isNull,
     );
   });
@@ -72,7 +63,6 @@ void main() {
 
     for (final details in decoded) {
       expect(details.price?.cents, 999);
-      expect(details.excerpt?.last, 20);
       expect(details.reprintDates, [_date, _date]);
       expect(details.reprintDates, isA<List<DateTime>>());
     }
@@ -86,10 +76,6 @@ void main() {
       {
         ...map,
         'reprintDates': ['not a date'],
-      },
-      {
-        ...map,
-        'excerpt': [1],
       },
     ]) {
       expect(

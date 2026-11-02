@@ -21,12 +21,12 @@ void main() {
         outputs: {
           output: decodedMatches(
             allOf([
-              contains(r"'genre': $it.genre.name"),
-              contains(r"'subgenre': ?$it.subgenre?.name"),
+              contains(r"'genre': EnumName($it.genre).name"),
+              contains(r'final $v => EnumName($v).name'),
               contains(r"Genre.values.byName($json['genre'] as String)"),
               contains(r'final $v => Genre.values.byName($v as String)'),
               contains(r'''$sink.write('{"genre":"');'''),
-              contains(r'$sink.write($it.genre.name);'),
+              contains(r'$sink.write(EnumName($it.genre).name);'),
             ]),
           ),
         },
@@ -69,8 +69,8 @@ void main() {
       expect(result.errors.join('\n'), contains('Book.genre is a Genre'));
     });
 
-    test('fail the build when overriding name', () async {
-      await expectBuildError(
+    test('ignore a name they declare themselves', () async {
+      final result = await build(
         '''
         $header
         enum Genre {
@@ -82,8 +82,12 @@ void main() {
           final Genre genre;
         }
         ''',
-        'Book.genre is a Genre',
+        outputs: {
+          output: decodedMatches(contains(r'EnumName($it.genre).name')),
+        },
       );
+
+      expect(result.succeeded, isTrue);
     });
   });
 }

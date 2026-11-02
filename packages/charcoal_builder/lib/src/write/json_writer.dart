@@ -14,16 +14,37 @@ abstract final class JsonWriter() {
     }
     return field.type is NullableFieldType
         ? '$key: ?$value'
-        : 'if (\$it.${field.name}.isNotEmpty) $key: $value';
+        : 'if (${_isNotEmpty(field)}) $key: $value';
   }
 
   static String decodeArgument(FieldModel field, int index) {
-    final key = _mapKeyOf(field);
-    final decoded = FieldCodec.of(field.type).decode('\$json[$key]', 0);
-    final value = field.defaultValue == null
-        ? decoded
-        : '\$json.containsKey($key) ? $decoded : \$d$index';
+    final value = _decodeValue(field, index);
     return field.isNamedParameter ? '${field.name}: $value' : value;
+  }
+
+  /// A missing key takes the default, and so does a null, if it cannot be one.
+  static String _decodeValue(FieldModel field, int index) {
+    final key = _mapKeyOf(field);
+    final codec = FieldCodec.of(field.type);
+    final value = '\$json[$key]';
+    if (field.defaultValue == null) {
+      return codec.decode(value, 0);
+    }
+    if (field.type is NullableFieldType) {
+      return '\$json.containsKey($key) ? ${codec.decode(value, 0)} : \$d$index';
+    }
+    return 'switch ($value) { '
+        'null => \$d$index, '
+        'final \$v => ${codec.decode(r'$v', 0)} '
+        '}';
+  }
+
+  /// What `Omit.empty` checks on a type that [FieldType.canBeEmpty].
+  static String _isNotEmpty(FieldModel field) {
+    final value = '\$it.${field.name}';
+    return field.type is PrimitiveFieldType
+        ? '$value != 0'
+        : '$value.isNotEmpty';
   }
 
   /// One constant per default, typed so that it means what it does in the
@@ -68,7 +89,7 @@ abstract final class JsonWriter() {
       ..writeln(r'switch ($field) {');
     for (final (index, field) in fields.indexed) {
       out.writeln('case $index:');
-      FieldCodec.of(field.type).read(out, '\$f$index', 0);
+      _readField(out, field, index);
     }
     out
       ..writeln(r'default: $r.skipValue();')
@@ -88,6 +109,21 @@ abstract final class JsonWriter() {
         .join(', ');
     out.writeln('return ${model.constructor}($arguments);');
     return out.toString();
+  }
+
+  static void _readField(StringBuffer out, FieldModel field, int index) {
+    final codec = FieldCodec.of(field.type);
+    final target = '\$f$index';
+    if (field.defaultValue == null || field.type is NullableFieldType) {
+      codec.read(out, target, 0);
+      return;
+    }
+    out
+      ..writeln(r'if ($r.tryReadNull()) {')
+      ..writeln('$target = \$d$index;')
+      ..writeln('} else {');
+    codec.read(out, target, 0);
+    out.writeln('}');
   }
 
   /// The body of `$write`, which builds no map.
@@ -123,17 +159,7 @@ abstract final class JsonWriter() {
     if (field.type is NullableFieldType) {
       return field.defaultValue == null || field.isDefaultNull;
     }
-    return model.omit == Omit.empty &&
-        field.isDefaultEmpty &&
-        _canBeEmpty(field.type);
-  }
-
-  static bool _canBeEmpty(FieldType type) {
-    return switch (type) {
-      PrimitiveFieldType(primitive: DartPrimitive.string) => true,
-      IterableFieldType() || MapFieldType() => true,
-      _ => false,
-    };
+    return model.omit == Omit.empty && field.type.canBeEmpty;
   }
 
   static void _writePresentValue(Statements out, FieldModel field) {
@@ -190,7 +216,7 @@ abstract final class JsonWriter() {
   static String _ifPresent(FieldModel field) {
     return field.type is NullableFieldType
         ? 'if (\$it.${field.name} case final \$v?) {'
-        : 'if (\$it.${field.name}.isNotEmpty) {';
+        : 'if (${_isNotEmpty(field)}) {';
   }
 
   static String _keyOf(FieldModel field) {
