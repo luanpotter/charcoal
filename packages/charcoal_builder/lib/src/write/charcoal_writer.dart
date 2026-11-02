@@ -24,8 +24,7 @@ abstract final class CharcoalWriter() {
     for (final model in classes) {
       buffer
         ..writeln()
-        ..writeln(_mixin(model))
-        ..writeln(CopyWriter.declarations(model));
+        ..writeln(_mixin(model));
     }
 
     return DartFormatter(

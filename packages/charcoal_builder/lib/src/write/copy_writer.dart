@@ -28,27 +28,16 @@ $name copy() => \$copy(this as $name);
 
 static $name \$copy($name \$it) => ${_construct(model, (field) => _copyOf(field.type, '\$it.${field.name}', 0))};
 ''';
+    // Telling `x: null` from leaving `x` out takes a sentinel default, and so a
+    // wider parameter type. The getter gives callers the exact field types.
     return '''
 $copy
 
-${name}CopyWith get copyWith => _${name}CopyWith(this as $name);
-''';
-  }
+$name Function(${_parameters(model.fields, _publicParameter)}) get copyWith => _\$copyWith;
 
-  /// The public interface, typed exactly as the fields, and its implementation.
-  static String declarations(ClassModel model) {
-    final name = model.name;
-    final copyWith = '${name}CopyWith';
-    return '''
-abstract interface class $copyWith {
-  $name call(${_parameters(model.fields, _publicParameter)});
-}
-
-final class const _$copyWith(this.$_source) implements $copyWith {
-  final $name $_source;
-
-  @override
-  $name call(${_parameters(model.fields, _privateParameter)}) => ${_construct(model, (field) => _replaced(model, field))};
+$name _\$copyWith(${_parameters(model.fields, _privateParameter)}) {
+  final $_source = this as $name;
+  return ${_construct(model, (field) => _replaced(model, field))};
 }
 ''';
   }
@@ -89,7 +78,7 @@ final class const _$copyWith(this.$_source) implements $copyWith {
     final current = '$_source.$name';
     final kept = model.isImmutable ? current : _copyOf(field.type, current, 0);
     return _isNullable(field)
-        ? 'identical($name, $_keep) ? $kept : '
+        ? '$name is _\$Keep ? $kept : '
               '$name as ${FieldCodec.of(field.type).typeName}'
         : '$name ?? $kept';
   }
