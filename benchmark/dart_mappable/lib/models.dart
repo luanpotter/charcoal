@@ -65,3 +65,10 @@ final class Catalog with CatalogMappable {
 
   const Catalog({required this.books});
 }
+
+@MappableClass()
+final class Passage with PassageMappable {
+  final String body;
+
+  const Passage({required this.body});
+}

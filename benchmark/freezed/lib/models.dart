@@ -52,3 +52,11 @@ abstract class Catalog with _$Catalog {
   factory Catalog.fromJson(Map<String, dynamic> json) =>
       _$CatalogFromJson(json);
 }
+
+@freezed
+abstract class Passage with _$Passage {
+  const factory Passage({required String body}) = _Passage;
+
+  factory Passage.fromJson(Map<String, dynamic> json) =>
+      _$PassageFromJson(json);
+}
