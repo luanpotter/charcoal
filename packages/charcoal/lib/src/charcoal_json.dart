@@ -20,6 +20,7 @@ abstract final class CharcoalJson() {
 
   /// Writes a quoted string, escaped exactly as `jsonEncode` does.
   static void writeString(StringBuffer sink, String value) {
+    jsonEncode(value);
     sink.writeCharCode(_quote);
     var start = 0;
     for (var i = 0; i < value.length; i++) {
