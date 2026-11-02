@@ -10,7 +10,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(this.parts, this.titles) with BookCharcoal {
+        final class Book(this.parts, this.titles) with BookCharcoal {
           final List<String?> parts;
           final Map<String, String> titles;
         }
@@ -36,7 +36,7 @@ void main() {
         $header
         enum Genre { fantasy }
         @Charcoal()
-        class Book(this.tags, this.genres, this.sequels) with BookCharcoal {
+        final class Book(this.tags, this.genres, this.sequels) with BookCharcoal {
           final Set<String> tags;
           final List<Genre> genres;
           final Map<String, Book> sequels;
@@ -63,7 +63,7 @@ void main() {
         $header
         enum Genre { fantasy }
         @Charcoal()
-        class Book(this.shelves) with BookCharcoal {
+        final class Book(this.shelves) with BookCharcoal {
           final List<List<Genre>> shelves;
         }
         ''',
@@ -86,7 +86,7 @@ void main() {
         import 'dart:collection';
         $header
         @Charcoal()
-        class Book(this.tags, this.pages, this.awards) with BookCharcoal {
+        final class Book(this.tags, this.pages, this.awards) with BookCharcoal {
           final SplayTreeSet<String> tags;
           final SplayTreeMap<String, int> pages;
           final Iterable<String> awards;
@@ -114,7 +114,7 @@ void main() {
         $header
         enum Language { english }
         @Charcoal()
-        class Book(this.titles) with BookCharcoal {
+        final class Book(this.titles) with BookCharcoal {
           final Map<Language, String> titles;
         }
         ''',
@@ -137,7 +137,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(this.awards) with BookCharcoal {
+        final class Book(this.awards) with BookCharcoal {
           final Map<int, String> awards;
         }
         ''',
@@ -162,7 +162,7 @@ void main() {
         extension type Id(int value) {}
         extension type Isbn(String value) {}
         @Charcoal()
-        class Book(this.byId, this.byIsbn) with BookCharcoal {
+        final class Book(this.byId, this.byIsbn) with BookCharcoal {
           final Map<Id, String> byId;
           final Map<Isbn, String> byIsbn;
         }
@@ -188,7 +188,7 @@ void main() {
         import 'dart:collection' as c;
         $header
         @Charcoal()
-        class Book(this.a, this.b) with BookCharcoal {
+        final class Book(this.a, this.b) with BookCharcoal {
           final UnmodifiableListView<String> a;
           final c.SplayTreeSet<String> b;
         }
@@ -205,7 +205,7 @@ void main() {
         $header
         class Publisher {}
         @Charcoal()
-        class Book(
+        final class Book(
           this.a, this.b, this.c, this.d, this.e, this.f,
         ) with BookCharcoal {
           final List a;

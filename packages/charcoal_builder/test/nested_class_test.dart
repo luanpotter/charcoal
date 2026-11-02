@@ -9,7 +9,7 @@ void main() {
       import 'package:charcoal/charcoal.dart';
       part 'author.charcoal.g.dart';
       @Charcoal()
-      class Author(this.name) with AuthorCharcoal {
+      final class Author(this.name) with AuthorCharcoal {
         final String name;
       }
     ''';
@@ -22,7 +22,7 @@ void main() {
         import 'author.dart';
         $header
         @Charcoal()
-        class Book(this.author, this.editor) with BookCharcoal {
+        final class Book(this.author, this.editor) with BookCharcoal {
           final Author author;
           final Author? editor;
         }
@@ -53,7 +53,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(this.sequel) with BookCharcoal {
+        final class Book(this.sequel) with BookCharcoal {
           final Book? sequel;
         }
         ''',
@@ -71,7 +71,7 @@ void main() {
         import 'author.dart' as a;
         $header
         @Charcoal()
-        class Book(this.author) with BookCharcoal {
+        final class Book(this.author) with BookCharcoal {
           final a.Author author;
         }
         ''',
@@ -89,7 +89,7 @@ void main() {
         import 'author.dart' show Author;
         $header
         @Charcoal()
-        class Book(this.author) with BookCharcoal {
+        final class Book(this.author) with BookCharcoal {
           final Author author;
         }
         ''',
@@ -108,11 +108,11 @@ void main() {
       final result = await build('''
         $header
         @Charcoal()
-        class Book(this.author) with BookCharcoal {
+        final class Book(this.author) with BookCharcoal {
           final Author<int> author;
         }
         @Charcoal()
-        class Author<T>() with AuthorCharcoal;
+        final class Author<T>() with AuthorCharcoal;
         ''');
 
       expect(result.succeeded, isFalse);

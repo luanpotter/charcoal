@@ -245,16 +245,13 @@ final class LibraryReader(this._resolver, this._config) {
     }
     if (element.isAbstract) {
       errors.add('$name is abstract but not sealed, so it cannot be decoded.');
+    } else if (!element.isFinal) {
+      errors.add('$name must be final, or sealed, so that no subclass exists.');
     }
     if (element.typeParameters.isNotEmpty) {
       errors.add('$name is generic, which is not supported yet.');
     }
     _checkSuperclass(element);
-    if (element.library.classes.any((other) {
-      return other.supertype?.element == element;
-    })) {
-      errors.add('$name has subclasses, so it must be sealed.');
-    }
     if (!await _hasMixin(element)) {
       errors.add('$name must declare `with ${name}Charcoal`.');
     }
@@ -556,15 +553,26 @@ final class LibraryReader(this._resolver, this._config) {
         .map((parameter) => parameter.name)
         .toSet();
     for (final owner in [element, ..._superclassesOf(element)]) {
-      for (final field in owner.fields) {
-        final isSkipped =
-            field.isStatic || field.isLate || field.isOriginGetterSetter;
-        if (!isSkipped && !parameters.contains(field.name)) {
-          errors.add(
-            '${owner.name}.${field.name} is not a constructor parameter of '
-            '${element.name}, so a round trip would lose it.',
-          );
-        }
+      _checkFieldsOf(owner, element, parameters);
+      for (final mixin in owner.mixins) {
+        _checkFieldsOf(mixin.element, element, parameters);
+      }
+    }
+  }
+
+  void _checkFieldsOf(
+    InterfaceElement owner,
+    ClassElement element,
+    Set<String?> parameters,
+  ) {
+    for (final field in owner.fields) {
+      final isSkipped =
+          field.isStatic || field.isLate || field.isOriginGetterSetter;
+      if (!isSkipped && !parameters.contains(field.name)) {
+        errors.add(
+          '${owner.name}.${field.name} is not a constructor parameter of '
+          '${element.name}, so a round trip would lose it.',
+        );
       }
     }
   }

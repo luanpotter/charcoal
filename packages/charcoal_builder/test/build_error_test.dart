@@ -14,7 +14,7 @@ void main() {
       extension type Id(Object value) {}
 
       @Charcoal()
-      class Book<T>(
+      final class Book<T>(
         this.a, this.b, this.c, this.d, this.e, this.f, this.g,
         this.h, this.i, this.j, this.k, this.l, this.m,
       ) with BookCharcoal {
@@ -47,7 +47,7 @@ void main() {
         '''
         import 'package:charcoal/charcoal.dart';
         @Charcoal()
-        class Book() with BookCharcoal;
+        final class Book() with BookCharcoal;
         ''',
         "Missing part: add `part 'book.charcoal.g.dart';`",
       );
@@ -58,9 +58,34 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book();
+        final class Book();
         ''',
         'Book must declare `with BookCharcoal`.',
+      );
+    });
+
+    test('a class that is not final', () async {
+      for (final modifier in ['', 'base ', 'interface ']) {
+        await expectBuildError(
+          '''
+          $header
+          @Charcoal()
+          ${modifier}class Book() with BookCharcoal;
+          ''',
+          'Book must be final, or sealed',
+        );
+      }
+    });
+
+    test('a superclass', () async {
+      await expectBuildError(
+        '''
+        $header
+        class Publication {}
+        @Charcoal()
+        final class Book() extends Publication with BookCharcoal;
+        ''',
+        'Book extends a class',
       );
     });
 
@@ -69,7 +94,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class _Book() with _BookCharcoal;
+        final class _Book() with _BookCharcoal;
         ''',
         '_Book is private',
       );
@@ -91,21 +116,9 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book<T>() with BookCharcoal;
+        final class Book<T>() with BookCharcoal;
         ''',
         'Book is generic',
-      );
-    });
-
-    test('a superclass', () async {
-      await expectBuildError(
-        '''
-        $header
-        class Publication {}
-        @Charcoal()
-        class Book() extends Publication with BookCharcoal;
-        ''',
-        'Book extends a class',
       );
     });
 
@@ -114,7 +127,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book with BookCharcoal {
+        final class Book with BookCharcoal {
           Book.named();
         }
         ''',
@@ -127,7 +140,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book with BookCharcoal {
+        final class Book with BookCharcoal {
           Book(String title);
         }
         ''',
@@ -140,7 +153,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book.of(this.title) with BookCharcoal {
+        final class Book.of(this.title) with BookCharcoal {
           final String title;
           factory Book(String title) => Book.of(title);
         }
@@ -155,7 +168,7 @@ void main() {
         $header
         class Publisher {}
         @Charcoal()
-        class Book(this.publisher) with BookCharcoal {
+        final class Book(this.publisher) with BookCharcoal {
           final Publisher publisher;
         }
         ''',
@@ -168,7 +181,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book() with BookCharcoal {
+        final class Book() with BookCharcoal {
           int pageCount = 0;
         }
         ''',
@@ -180,7 +193,7 @@ void main() {
       final result = await build('''
         import 'package:charcoal/charcoal.dart';
         @Charcoal()
-        class Book() {
+        final class Book() {
           int pageCount = 0;
         }
         ''');

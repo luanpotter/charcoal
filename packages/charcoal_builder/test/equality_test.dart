@@ -12,7 +12,7 @@ void main() {
         enum Genre { fantasy }
         @immutable
         @Charcoal()
-        class Book(this.tags, this.title, this.genre, this.pageCount)
+        final class Book(this.tags, this.title, this.genre, this.pageCount)
             with BookCharcoal {
           final List<String> tags;
           final String title;
@@ -48,7 +48,7 @@ void main() {
         @immutable
         class Publication {}
         @Charcoal()
-        class Book() with BookCharcoal implements Publication;
+        final class Book() with BookCharcoal implements Publication;
         ''',
         outputs: {output: decodedMatches(contains('operator =='))},
       );
@@ -61,10 +61,10 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Author() with AuthorCharcoal;
+        final class Author() with AuthorCharcoal;
         @immutable
         @Charcoal()
-        class Book(this.authors) with BookCharcoal {
+        final class Book(this.authors) with BookCharcoal {
           final List<Author?> authors;
         }
         ''',
@@ -79,7 +79,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(this.title) with BookCharcoal {
+        final class Book(this.title) with BookCharcoal {
           final String title;
         }
         ''',
@@ -104,12 +104,12 @@ void main() {
         $header
         @immutable
         @Charcoal()
-        class Author() with AuthorCharcoal;
+        final class Author() with AuthorCharcoal;
         @Charcoal()
-        class Details() with DetailsCharcoal;
+        final class Details() with DetailsCharcoal;
         extension type Shelf(List<Details> books) {}
         @Charcoal()
-        class Book(
+        final class Book(
           this.author,
           this.details,
           this.maybe,
@@ -151,9 +151,9 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Author() with AuthorCharcoal;
+        final class Author() with AuthorCharcoal;
         @Charcoal()
-        class Book(this.authors) with BookCharcoal {
+        final class Book(this.authors) with BookCharcoal {
           final Set<Author> authors;
         }
         ''',
@@ -166,7 +166,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(this.parts) with BookCharcoal {
+        final class Book(this.parts) with BookCharcoal {
           final List<Set<List<int>>> parts;
         }
         ''',
@@ -182,7 +182,7 @@ void main() {
         $header
         @immutable
         @Charcoal()
-        class Book(this.id) with BookCharcoal {
+        final class Book(this.id) with BookCharcoal {
           final int id;
 
           @override
@@ -206,7 +206,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book() with BookCharcoal {
+        final class Book() with BookCharcoal {
           @override
           bool operator ==(Object other) => other is Book;
         }
@@ -220,7 +220,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book() with BookCharcoal {
+        final class Book() with BookCharcoal {
           @override
           int get hashCode => 1;
         }
@@ -235,7 +235,7 @@ void main() {
       '''
       $header
       @Charcoal()
-      class Book(this.title, this.\$id) with BookCharcoal {
+      final class Book(this.title, this.\$id) with BookCharcoal {
         final String title;
         final int \$id;
       }

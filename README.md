@@ -31,7 +31,7 @@ part 'book.charcoal.g.dart';
 
 @immutable
 @Charcoal()
-class Book({
+final class Book({
   required this.id,
   required this.title,
   required this.genres,

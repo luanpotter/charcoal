@@ -10,7 +10,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(this.title, this.pageCount) with BookCharcoal {
+        final class Book(this.title, this.pageCount) with BookCharcoal {
           final String title;
           final int pageCount;
         }
@@ -34,7 +34,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book() with BookCharcoal;
+        final class Book() with BookCharcoal;
         ''',
         outputs: {output: decodedMatches(contains(r"$sink.write('{}');"))},
       );
@@ -47,7 +47,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(this.notes, this.title, this.subtitle) with BookCharcoal {
+        final class Book(this.notes, this.title, this.subtitle) with BookCharcoal {
           final String? notes;
           final String title;
           final String? subtitle;
@@ -73,7 +73,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(this.notes) with BookCharcoal {
+        final class Book(this.notes) with BookCharcoal {
           final String? notes;
         }
         ''',
@@ -88,7 +88,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(this.notes, this.subtitle) with BookCharcoal {
+        final class Book(this.notes, this.subtitle) with BookCharcoal {
           final String? notes;
           final String? subtitle;
         }
@@ -111,7 +111,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(this.\$count) with BookCharcoal {
+        final class Book(this.\$count) with BookCharcoal {
           final int \$count;
         }
         ''',

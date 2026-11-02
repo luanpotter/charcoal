@@ -10,7 +10,7 @@ void main() {
         '''
       $header
       @Charcoal()
-      class Book(this.notes) with BookCharcoal {
+      final class Book(this.notes) with BookCharcoal {
         final String? notes;
       }
       ''';
@@ -41,7 +41,7 @@ void main() {
         '''
         $header
         @Charcoal(omit: Omit.nulls)
-        class Book(this.notes) with BookCharcoal {
+        final class Book(this.notes) with BookCharcoal {
           final String? notes;
         }
         ''',
@@ -57,7 +57,7 @@ void main() {
         '''
         $header
         @Charcoal(omit: Omit.none)
-        class Book(this.notes) with BookCharcoal {
+        final class Book(this.notes) with BookCharcoal {
           final String? notes;
         }
         ''',

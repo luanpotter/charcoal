@@ -68,7 +68,7 @@ void main() {
         '''
         $family
         @Charcoal()
-        class Book(this.main, this.others) with BookCharcoal {
+        final class Book(this.main, this.others) with BookCharcoal {
           final Edition? main;
           final List<Readable> others;
         }
@@ -233,6 +233,131 @@ void main() {
     });
   });
 
+  group('an open class', () {
+    test('cannot be extended', () async {
+      await expectBuildError(
+        '''
+        $header
+        abstract class Publication {}
+        @Charcoal()
+        final class Book() extends Publication with BookCharcoal;
+        ''',
+        'Book extends a class that no sealed @Charcoal class covers',
+      );
+    });
+
+    test('can be implemented, from anywhere', () async {
+      final result = await build(
+        '''
+        import 'other.dart';
+        $header
+        @Charcoal()
+        final class Book() with BookCharcoal implements Publication;
+        ''',
+        assets: {
+          'package_name|lib/other.dart': 'abstract class Publication {}',
+        },
+        outputs: {output: anything},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('cannot be decoded as a field, without an adapter', () async {
+      await expectBuildError(
+        '''
+        $header
+        abstract class Publication {}
+        @Charcoal()
+        final class Book(this.publication) with BookCharcoal {
+          final Publication publication;
+        }
+        ''',
+        'Book.publication is a Publication, which charcoal cannot serialize.',
+      );
+    });
+
+    test('can be a field through an adapter', () async {
+      final result = await build(
+        '''
+        $header
+        abstract class Publication(this.id) {
+          final String id;
+        }
+        final class Magazine(super.id) extends Publication;
+        final class const PublicationAdapter()
+            implements CharcoalAdapter<Publication, String> {
+          @override
+          String encode(Publication value) => value.id;
+
+          @override
+          Publication decode(String json) => Magazine(json);
+        }
+        @Charcoal()
+        final class Book(this.publication) with BookCharcoal {
+          final Publication publication;
+        }
+        ''',
+        outputs: {
+          output: decodedMatches(
+            contains(r'const PublicationAdapter().encode($it.publication)'),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+  });
+
+  group('another mixin', () {
+    test('can be added, from anywhere', () async {
+      final result = await build(
+        '''
+        import 'other.dart';
+        $header
+        @Charcoal()
+        final class Book() with BookCharcoal, Counting;
+        ''',
+        assets: {
+          'package_name|lib/other.dart':
+              'mixin Counting { int get count => 0; }',
+        },
+        outputs: {output: anything},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('fails the build on a private field too', () async {
+      await expectBuildError(
+        '''
+        $header
+        mixin Counting {
+          int _count = 0;
+          int get count => _count;
+        }
+        @Charcoal()
+        final class Book() with BookCharcoal, Counting;
+        ''',
+        'Counting._count is not a constructor parameter of Book',
+      );
+    });
+
+    test('fails the build with a public field left out', () async {
+      await expectBuildError(
+        '''
+        $header
+        mixin Timestamps {
+          int createdAt = 0;
+        }
+        @Charcoal()
+        final class Book() with BookCharcoal, Timestamps;
+        ''',
+        'Timestamps.createdAt is not a constructor parameter of Book',
+      );
+    });
+  });
+
   group('fails the build on', () {
     test('a sealed class with no leaves', () async {
       await expectBuildError(
@@ -266,18 +391,6 @@ void main() {
         abstract class Printed() extends Edition;
         ''',
         'Printed is abstract but not sealed',
-      );
-    });
-
-    test('subclasses of a concrete class', () async {
-      await expectBuildError(
-        '''
-        $header
-        @Charcoal()
-        class Book() with BookCharcoal;
-        class Special() extends Book;
-        ''',
-        'Book has subclasses, so it must be sealed.',
       );
     });
 
@@ -333,7 +446,7 @@ void main() {
         @Charcoal(discriminator: 'b')
         final class Ebook() extends Digital with EbookCharcoal;
         @Charcoal(discriminator: 'c')
-        class Book() with BookCharcoal;
+        final class Book() with BookCharcoal;
         ''');
 
       final errors = result.errors.join('\n');
@@ -350,7 +463,7 @@ void main() {
         sealed class Edition();
         final class Ebook() extends Edition with EbookCharcoal;
         @Charcoal(tag: 'b')
-        class Book() with BookCharcoal;
+        final class Book() with BookCharcoal;
         ''');
 
       final errors = result.errors.join('\n');
@@ -412,7 +525,7 @@ void main() {
         final class Ebook() extends Edition with EbookCharcoal;
         @immutable
         @Charcoal()
-        class Book(this.edition) with BookCharcoal {
+        final class Book(this.edition) with BookCharcoal {
           final Edition edition;
         }
         ''',

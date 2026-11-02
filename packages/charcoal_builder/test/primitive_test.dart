@@ -10,7 +10,7 @@ void main() {
       $header
       typedef Title = String;
       @Charcoal()
-      class Book(
+      final class Book(
         this.a, this.b, this.c, this.d, this.e,
         this.f, this.g, this.h, this.i, this.j, this.k,
       ) with BookCharcoal {

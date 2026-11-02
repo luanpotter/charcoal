@@ -10,7 +10,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book({
+        final class Book({
           this.pageCount = 1,
           this.tags = const [],
         }) with BookCharcoal {
@@ -42,7 +42,7 @@ void main() {
           static const first = 'other';
         }
         @Charcoal()
-        class Book({
+        final class Book({
           this.a = first,
           this.b = Book.first,
           this.c = const [first, Other.first],
@@ -87,7 +87,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book({this.title = null}) with BookCharcoal {
+        final class Book({this.title = null}) with BookCharcoal {
           final String? title;
         }
         ''',
@@ -102,7 +102,7 @@ void main() {
         '''
         $header
         @Charcoal(omit: Omit.none)
-        class Book({this.notes = 'none'}) with BookCharcoal {
+        final class Book({this.notes = 'none'}) with BookCharcoal {
           final String? notes;
         }
         ''',
@@ -124,7 +124,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book({this.notes = 'none'}) with BookCharcoal {
+        final class Book({this.notes = 'none'}) with BookCharcoal {
           final String? notes;
         }
         ''',
@@ -139,7 +139,7 @@ void main() {
         '''
         $header
         @Charcoal(omit: Omit.empty)
-        class Book({
+        final class Book({
           required this.title,
           this.pageCount = 0,
           this.rating = 0.0,
@@ -179,7 +179,7 @@ void main() {
         '''
         $header
         @Charcoal(omit: Omit.empty)
-        class Book({
+        final class Book({
           this.title = '',
           this.isHardcover = false,
         }) with BookCharcoal {
@@ -205,7 +205,7 @@ void main() {
         '''
         $header
         @Charcoal(omit: Omit.empty)
-        class Book({required this.tags}) with BookCharcoal {
+        final class Book({required this.tags}) with BookCharcoal {
           final List<String> tags;
         }
         ''',
@@ -218,7 +218,7 @@ void main() {
         '''
         $header
         @Charcoal(omit: Omit.empty)
-        class Book({this.pageCount = 1}) with BookCharcoal {
+        final class Book({this.pageCount = 1}) with BookCharcoal {
           final int pageCount;
         }
         ''',

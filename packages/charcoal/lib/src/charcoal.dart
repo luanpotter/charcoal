@@ -1,4 +1,5 @@
-/// Generates JSON, copy, equality, hash and `toString` for a data class.
+/// Generates JSON, copy, equality, hash and `toString` for a data class,
+/// which must be either final or a sealed chain.
 ///
 /// A class marked `@immutable` gets `==` and `hashCode` by value. Any other
 /// keeps them by identity, and gets `contentEquals` and `contentHash` instead.
