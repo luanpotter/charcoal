@@ -18,7 +18,7 @@ abstract final class EqualityWriter() {
   static String members(ClassModel model) {
     final name = model.name;
     if (model.isImmutable) {
-      if (model.inherited.contains('==')) {
+      if (model.handWritten.contains('==')) {
         return '';
       }
       return '''

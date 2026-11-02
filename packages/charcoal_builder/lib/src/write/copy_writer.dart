@@ -21,15 +21,8 @@ final class const _\$Keep();
 
   static String members(ClassModel model) {
     final name = model.name;
-    final isCopyInherited = model.inherited.contains('copy');
-    final copy = model.isImmutable
-        ? (isCopyInherited ? '' : '$name copy() => this as $name;')
-        : '''
-${isCopyInherited ? '' : '$name copy() => \$copy(this as $name);'}
-
-static $name \$copy($name \$it) => ${_construct(model, (field) => _copyOf(field.type, '\$it.${field.name}', 0))};
-''';
-    if (model.inherited.contains('copyWith')) {
+    final copy = _copy(model);
+    if (model.handWritten.contains('copyWith')) {
       return copy;
     }
     // Telling `x: null` from leaving `x` out takes a sentinel default, and so a
@@ -43,6 +36,27 @@ $name _\$copyWith(${_parameters(model.fields, _privateParameter)}) {
   final $_source = this as $name;
   return ${_construct(model, (field) => _replaced(model, field))};
 }
+''';
+  }
+
+  /// What a holder calls goes through a hand-written `copy`, if there is one.
+  static String _copy(ClassModel model) {
+    final name = model.name;
+    final isHandWritten = model.handWritten.contains('copy');
+    if (model.isImmutable) {
+      return isHandWritten ? '' : '$name copy() => this as $name;';
+    }
+    if (isHandWritten) {
+      return 'static $name \$copy($name \$it) => \$it.copy();';
+    }
+    final constructed = _construct(
+      model,
+      (field) => _copyOf(field.type, '\$it.${field.name}', 0),
+    );
+    return '''
+$name copy() => \$copy(this as $name);
+
+static $name \$copy($name \$it) => $constructed;
 ''';
   }
 

@@ -189,12 +189,11 @@ final class LibraryReader(this._resolver, this._config) {
     }
   }
 
-  /// What a superclass defines, leaving out what a subclass still must.
-  Set<String> _inheritedOf(ClassElement element) {
+  Set<String> _handWrittenOf(ClassElement element) {
+    final owners = [element, ..._superclassesOf(element)];
     return {
       for (final member in const ['==', 'toString', 'copy', 'copyWith'])
-        if (_superclassesOf(element).any((other) => _defines(other, member)))
-          member,
+        if (owners.any((owner) => _defines(owner, member))) member,
     };
   }
 
@@ -289,7 +288,7 @@ final class LibraryReader(this._resolver, this._config) {
               key: _discriminatorOf(element),
               value: _stringOption(element, 'tag') ?? name,
             ),
-      inherited: _inheritedOf(element),
+      handWritten: _handWrittenOf(element),
     );
   }
 

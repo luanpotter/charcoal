@@ -245,7 +245,14 @@ void main() {
       }
       void use(Book book) => book.copy();
       ''',
-      outputs: {output: anything},
+      outputs: {
+        output: decodedMatches(
+          allOf([
+            contains(r'static Book $copy(Book $it) => $it.copy();'),
+            isNot(contains(r'Book copy() => $copy')),
+          ]),
+        ),
+      },
     );
 
     expect(result.succeeded, isTrue);

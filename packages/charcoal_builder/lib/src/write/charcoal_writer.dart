@@ -40,7 +40,7 @@ abstract final class CharcoalWriter() {
   }
 
   static String _toString(ClassModel model) {
-    if (model.inherited.contains('toString')) {
+    if (model.handWritten.contains('toString')) {
       return '';
     }
     return '''
