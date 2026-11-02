@@ -7,7 +7,7 @@ void main() {
   group('extension types', () {
     const id = 'extension type Id<T>(int value) {}';
 
-    test('unwrap and wrap, keeping phantom type arguments', () async {
+    test('go through casts, keeping phantom type arguments', () async {
       final result = await build(
         '''
         $header
@@ -23,12 +23,12 @@ void main() {
             allOf([
               contains(r"'id': $it.id"),
               contains(r"'parent': ?$it.parent"),
-              contains(r"Id($json['id'] as int)"),
-              contains(r'final $v => Id($v as int)'),
-              contains(r'$sink.write($it.id.value);'),
-              contains(r'$sink.write($v.value);'),
+              contains(r"($json['id'] as int) as Id<Book>"),
+              contains(r'final $v => ($v as int) as Id<Book>'),
+              contains(r'$sink.write(($it.id as int));'),
+              contains(r'$sink.write(($v as int));'),
               contains(r'Id<Book>? $f0;'),
-              contains(r'$f0 = Id($x0);'),
+              contains(r'$f0 = $x0 as Id<Book>;'),
             ]),
           ),
         },
@@ -51,9 +51,11 @@ void main() {
         outputs: {
           output: decodedMatches(
             allOf([
-              contains(r"'main': $it.main.genre.name"),
-              contains('Main(Genre.values.byName('),
-              contains(r'$sink.write($it.main.genre.name);'),
+              contains(r"'main': EnumName(($it.main as Genre)).name"),
+              contains(
+                r"(Genre.values.byName($json['main'] as String)) as Main",
+              ),
+              contains(r'$sink.write(EnumName(($it.main as Genre)).name);'),
             ]),
           ),
         },
@@ -62,57 +64,53 @@ void main() {
       expect(result.succeeded, isTrue);
     });
 
-    test('use a named primary constructor and private parts locally', () async {
-      final result = await build(
-        '''
-        $header
-        extension type Isbn._(String _text) {
-          factory Isbn(String text) => Isbn._(text);
-        }
-        @Charcoal()
-        class Book(this.isbn) with BookCharcoal {
-          final Isbn isbn;
-        }
-        ''',
-        outputs: {
-          output: decodedMatches(
-            allOf([
-              contains(r"Isbn._($json['isbn'] as String)"),
-              contains(r'CharcoalJson.writeString($sink, $it.isbn._text);'),
-            ]),
-          ),
-        },
-      );
-
-      expect(result.succeeded, isTrue);
-    });
-
-    test('fail the build when generated code cannot reach them', () async {
-      final result = await build(
-        '''
+    test(
+      'never touch a private constructor or field, wherever it is',
+      () async {
+        final result = await build(
+          '''
         import 'other.dart';
         $header
-        extension type Box<T>(T value) {}
         @Charcoal()
-        class Book(this.a, this.b, this.c) with BookCharcoal {
+        class Book(this.a, this.b) with BookCharcoal {
           final PrivateField a;
           final PrivateConstructor b;
-          final Box<int> c;
         }
         ''',
-        assets: {
-          'package_name|lib/other.dart': '''
+          assets: {
+            'package_name|lib/other.dart': '''
             extension type PrivateField(int _value) {}
             extension type PrivateConstructor._(int value) {}
           ''',
-        },
-      );
+          },
+          outputs: {
+            output: decodedMatches(
+              allOf([
+                contains(r"($json['a'] as int) as PrivateField"),
+                contains(r"($json['b'] as int) as PrivateConstructor"),
+                isNot(contains('_value')),
+                isNot(contains('PrivateConstructor._')),
+              ]),
+            ),
+          },
+        );
 
-      final errors = result.errors.join('\n');
-      expect(result.succeeded, isFalse);
-      for (final field in 'abc'.split('')) {
-        expect(errors, contains('Book.$field is a'));
-      }
+        expect(result.succeeded, isTrue);
+      },
+    );
+
+    test('fail the build on a type parameter as representation', () async {
+      await expectBuildError(
+        '''
+        $header
+        extension type Box<T>(T value) {}
+        @Charcoal()
+        class Book(this.box) with BookCharcoal {
+          final Box<int> box;
+        }
+        ''',
+        'Book.box is a',
+      );
     });
 
     test('fail the build when named through a prefix', () async {

@@ -34,7 +34,7 @@ void main() {
               contains(r'final $v => const StampAdapter().encode($v)'),
               contains(r'const StampAdapter().encode($e0)'),
               contains(r"const StampAdapter().decode($json['a'] as int)"),
-              contains(r'final $a0 = const StampAdapter().encode($it.a);'),
+              contains(r'$sink.write(const StampAdapter().encode($it.a));'),
               contains(r'$f0 = const StampAdapter().decode($x0);'),
               contains(r'Stamp? $f0;'),
             ]),
@@ -142,14 +142,21 @@ void main() {
       );
     });
 
-    test('ship with charcoal for DateTime and Uri', () async {
+    test('ship with charcoal for common types', () async {
       final result = await build(
         '''
         $header
         @Charcoal()
-        class Book(this.date, this.uri) with BookCharcoal {
+        class Book(
+          this.date,
+          this.uri,
+          this.delay,
+          this.big,
+        ) with BookCharcoal {
           final DateTime date;
           final Uri? uri;
+          final Duration delay;
+          final BigInt big;
         }
         ''',
         outputs: {
@@ -157,6 +164,8 @@ void main() {
             allOf([
               contains(r"'date': const DateTimeAdapter().encode($it.date)"),
               contains(r'final $v => const UriAdapter().encode($v)'),
+              contains(r'$sink.write(const DurationAdapter().encode('),
+              contains(r'writeString($sink, const BigIntAdapter().encode('),
             ]),
           ),
         },
@@ -339,7 +348,39 @@ void main() {
             Stamp decode(Object json) => Stamp();
           }
           ''',
-          'The adapter A writes a Object, which charcoal cannot serialize.',
+          'The adapter A writes a Object',
+        );
+      });
+
+      test('a collection as wire type', () async {
+        await expectAdapterError(
+          '''
+          class const A() implements CharcoalAdapter<Stamp, List<int>> {
+            @override
+            List<int> encode(Stamp value) => [];
+            @override
+            Stamp decode(List<int> json) => Stamp();
+          }
+          ''',
+          'it can only write an int, a double, a String or a bool',
+        );
+      });
+
+      test('a @Charcoal class', () async {
+        await expectBuildError(
+          '''
+          $header
+          @Charcoal()
+          class Stamp() with StampCharcoal;
+          class const A() implements CharcoalAdapter<Stamp, int> {
+            $body
+          }
+          @Charcoal()
+          class Book(this.a) with BookCharcoal {
+            final Stamp a;
+          }
+          ''',
+          'The adapter A is for Stamp, which already is a @Charcoal class.',
         );
       });
 

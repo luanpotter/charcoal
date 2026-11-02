@@ -3,6 +3,8 @@ import 'package:charcoal_builder/src/write/json/field_codec.dart';
 import 'package:charcoal_builder/src/write/json/statements.dart';
 
 /// By name, which is an identifier, so writing it never needs escaping.
+///
+/// Through `EnumName`, as an enum may declare a `name` of its own.
 final class EnumCodec(this._type) extends FieldCodec {
   final EnumFieldType _type;
 
@@ -10,7 +12,7 @@ final class EnumCodec(this._type) extends FieldCodec {
   String get typeName => _type.name;
 
   @override
-  String convert(String value, int depth) => '$value.name';
+  String convert(String value, int depth) => 'EnumName($value).name';
 
   @override
   String decode(String value, int depth) {
@@ -26,7 +28,7 @@ final class EnumCodec(this._type) extends FieldCodec {
   void write(Statements out, String value, int depth) {
     out
       ..literal('"')
-      ..code('\$sink.write($value.name);')
+      ..code('\$sink.write(${convert(value, depth)});')
       ..literal('"');
   }
 }

@@ -23,7 +23,8 @@ void main() {
             allOf([
               contains(r'static const int $d0 = 1;'),
               contains(r'static const List<String> $d1 = const [];'),
-              contains(r"$json.containsKey('pageCount') ?"),
+              contains(r'null => $d0,'),
+              contains(r'$f0 = $d0;'),
               contains(r'int? $f0 = $d0;'),
             ]),
           ),
@@ -81,24 +82,35 @@ void main() {
       expect(result.succeeded, isTrue);
     });
 
-    test('keep a null when the default is not null', () async {
+    test('of null still drop a null', () async {
       final result = await build(
         '''
         $header
         @Charcoal()
-        class Book({
-          this.notes = 'none',
-          this.title = null,
-        }) with BookCharcoal {
-          final String? notes;
+        class Book({this.title = null}) with BookCharcoal {
           final String? title;
+        }
+        ''',
+        outputs: {output: decodedMatches(contains(r"'title': ?$it.title"))},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('that are not null keep a null with Omit.none', () async {
+      final result = await build(
+        '''
+        $header
+        @Charcoal(omit: Omit.none)
+        class Book({this.notes = 'none'}) with BookCharcoal {
+          final String? notes;
         }
         ''',
         outputs: {
           output: decodedMatches(
             allOf([
               contains(r"'notes': $it.notes"),
-              contains(r"'title': ?$it.title"),
+              contains(r"$json.containsKey('notes')"),
             ]),
           ),
         },
@@ -107,40 +119,111 @@ void main() {
       expect(result.succeeded, isTrue);
     });
 
-    test('allow dropping only an empty default with Omit.empty', () async {
+    test('that are not null fail the build when a null could drop', () async {
+      await expectBuildError(
+        '''
+        $header
+        @Charcoal()
+        class Book({this.notes = 'none'}) with BookCharcoal {
+          final String? notes;
+        }
+        ''',
+        'Book.notes defaults to a value that is not null',
+      );
+    });
+  });
+
+  group('Omit.empty', () {
+    test('drops numbers at zero and empty collections', () async {
       final result = await build(
         '''
         $header
         @Charcoal(omit: Omit.empty)
         class Book({
-          this.title = '',
-          this.tags = const [],
-          this.subtitle = 'none',
+          required this.title,
           this.pageCount = 0,
-          required this.notes,
+          this.rating = 0.0,
+          this.tags = const [],
+          this.prizes = const {},
+          this.notes,
         }) with BookCharcoal {
           final String title;
-          final List<String> tags;
-          final String subtitle;
           final int pageCount;
-          final String notes;
+          final double rating;
+          final List<String> tags;
+          final Map<String, int> prizes;
+          final String? notes;
         }
         ''',
         outputs: {
           output: decodedMatches(
             allOf([
-              contains(r"if ($it.title.isNotEmpty) 'title': $it.title"),
+              contains(r"'title': $it.title"),
+              contains(r"if ($it.pageCount != 0) 'pageCount': $it.pageCount"),
+              contains(r"if ($it.rating != 0) 'rating': $it.rating"),
               contains(r"if ($it.tags.isNotEmpty) 'tags': $it.tags"),
-              contains(r"'subtitle': $it.subtitle"),
-              contains(r"'pageCount': $it.pageCount"),
-              contains(r"'notes': $it.notes"),
-              contains(r'if ($it.title.isNotEmpty) {'),
+              contains(r"if ($it.prizes.isNotEmpty) 'prizes': $it.prizes"),
+              contains(r"'notes': ?$it.notes"),
+              contains(r'if ($it.pageCount != 0) {'),
+              contains(r'if ($it.tags.isNotEmpty) {'),
             ]),
           ),
         },
       );
 
       expect(result.succeeded, isTrue);
+    });
+
+    test('keeps strings and bools, whatever their default', () async {
+      final result = await build(
+        '''
+        $header
+        @Charcoal(omit: Omit.empty)
+        class Book({
+          this.title = '',
+          this.isHardcover = false,
+        }) with BookCharcoal {
+          final String title;
+          final bool isHardcover;
+        }
+        ''',
+        outputs: {
+          output: decodedMatches(
+            allOf([
+              contains(r"'title': $it.title"),
+              contains(r"'isHardcover': $it.isHardcover"),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('fails the build on a required parameter it could drop', () async {
+      await expectBuildError(
+        '''
+        $header
+        @Charcoal(omit: Omit.empty)
+        class Book({required this.tags}) with BookCharcoal {
+          final List<String> tags;
+        }
+        ''',
+        'Book.tags can be dropped by Omit.empty',
+      );
+    });
+
+    test('fails the build on a default it could not bring back', () async {
+      await expectBuildError(
+        '''
+        $header
+        @Charcoal(omit: Omit.empty)
+        class Book({this.pageCount = 1}) with BookCharcoal {
+          final int pageCount;
+        }
+        ''',
+        'Book.pageCount can be dropped by Omit.empty',
+      );
     });
   });
 }

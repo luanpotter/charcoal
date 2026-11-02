@@ -43,7 +43,7 @@ Book _book() {
       pageCountByChapter: SplayTreeMap.of({'b': 2, 'a': 1}),
       relatedBookIds: const [Id(1)],
       quotes: const ['q'],
-      awards: const {'Hugo': 1966},
+      awardsByYear: const {1966: 'Hugo'},
       translations: const {
         Language.portuguese: Translation(title: 'Duna', translator: _author),
       },

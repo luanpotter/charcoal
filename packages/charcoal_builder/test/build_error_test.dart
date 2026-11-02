@@ -24,7 +24,7 @@ void main() {
         final Null d;
         final Never e;
         final Function f;
-        final Map<int, int> g;
+        final Map<double, int> g;
         final (int, int) h;
         final FutureOr<int> i;
         final T j;

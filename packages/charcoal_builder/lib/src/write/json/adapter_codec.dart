@@ -8,13 +8,13 @@ final class AdapterCodec(this._type) extends FieldCodec {
 
   FieldCodec get _wire => FieldCodec.of(_type.wire);
 
+  String _encoded(String value) => '${_type.adapter}.encode($value)';
+
   @override
   String get typeName => _type.typeName;
 
   @override
-  String convert(String value, int depth) {
-    return _wire.encode('${_type.adapter}.encode($value)', depth);
-  }
+  String convert(String value, int depth) => _encoded(value);
 
   @override
   String decode(String value, int depth) {
@@ -29,14 +29,8 @@ final class AdapterCodec(this._type) extends FieldCodec {
     out.writeln('$target = ${_type.adapter}.decode($raw);');
   }
 
-  /// In a block, as writing a list refers to its value more than once.
   @override
   void write(Statements out, String value, int depth) {
-    final encoded = '\$a$depth';
-    out
-      ..code('{')
-      ..code('final $encoded = ${_type.adapter}.encode($value);');
-    _wire.write(out, encoded, depth + 1);
-    out.code('}');
+    _wire.write(out, _encoded(value), depth);
   }
 }

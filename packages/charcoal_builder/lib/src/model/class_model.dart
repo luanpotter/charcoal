@@ -30,5 +30,7 @@ final class const FieldModel({
   /// The source of the parameter's default, if it has one.
   final String? defaultValue;
   final bool isDefaultNull;
+
+  /// Whether the default is what `Omit.empty` drops: zero or an empty one.
   final bool isDefaultEmpty;
 }
