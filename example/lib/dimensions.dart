@@ -2,6 +2,7 @@ import 'package:charcoal/charcoal.dart';
 
 part 'dimensions.charcoal.g.dart';
 
+@immutable
 @Charcoal()
 final class const Dimensions({
   this.widthCm,

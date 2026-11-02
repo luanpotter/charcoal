@@ -107,6 +107,7 @@ final class LibraryReader(this._resolver, this._config) {
 
     final fields = await _readFields(element, constructor);
     _checkOtherFields(element, fields);
+    _checkEquality(element, fields);
 
     return ClassModel(
       name: name,
@@ -115,7 +116,39 @@ final class LibraryReader(this._resolver, this._config) {
           : '$name.${constructor.name}',
       omit: _omitOf(element),
       fields: fields,
+      isImmutable: _isImmutable(element),
     );
+  }
+
+  bool _isImmutable(ClassElement element) {
+    return element.metadata.hasImmutable ||
+        element.allSupertypes.any((type) => type.element.metadata.hasImmutable);
+  }
+
+  void _checkEquality(ClassElement element, List<FieldModel> fields) {
+    final name = element.name!;
+    final hasEquals = element.getMethod('==') != null;
+    final hasHashCode = element.getGetter('hashCode') != null;
+    if (hasEquals != hasHashCode) {
+      errors.add('$name must define both == and hashCode, or neither.');
+    }
+
+    final isImmutable = _isImmutable(element);
+    for (final field in fields) {
+      final label = '$name.${field.name}';
+      if (field.type.hasSetWithoutValues) {
+        errors.add(
+          '$label has a Set of values that do not compare by value, so it '
+          'could never compare by content: use a List, or a @immutable class.',
+        );
+      }
+      if (isImmutable && field.type.mutableClass != null) {
+        errors.add(
+          '$label holds a ${field.type.mutableClass}, which is not @immutable, '
+          'so $name cannot be either.',
+        );
+      }
+    }
   }
 
   /// Whatever implements `CharcoalAdapter` and is in scope without a prefix.
@@ -406,19 +439,25 @@ final class LibraryReader(this._resolver, this._config) {
     if (element == null) {
       return null;
     }
+    final isSet = type.asInstanceOf(library.typeProvider.setElement) != null;
     if (type.isDartCoreList) {
-      return IterableFieldType(element, IterableKind.list);
+      return IterableFieldType(element, IterableKind.list, isSet: false);
     }
     if (type.isDartCoreSet) {
-      return IterableFieldType(element, IterableKind.set);
+      return IterableFieldType(element, IterableKind.set, isSet: true);
     }
     if (type.isDartCoreIterable) {
-      return IterableFieldType(element, IterableKind.other);
+      return IterableFieldType(element, IterableKind.other, isSet: false);
     }
     final ofClass = _ofClassOf(type, 1, library);
     return ofClass == null
         ? null
-        : IterableFieldType(element, IterableKind.other, ofClass: ofClass);
+        : IterableFieldType(
+            element,
+            IterableKind.other,
+            isSet: isSet,
+            ofClass: ofClass,
+          );
   }
 
   FieldType? _mapOf(
@@ -495,7 +534,9 @@ final class LibraryReader(this._resolver, this._config) {
         element.typeParameters.isNotEmpty) {
       return null;
     }
-    return _isVisible(element, library) ? ClassFieldType(element.name!) : null;
+    return _isVisible(element, library)
+        ? ClassFieldType(element.name!, isImmutable: _isImmutable(element))
+        : null;
   }
 
   bool _isVisible(Element element, LibraryElement library) {

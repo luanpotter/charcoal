@@ -15,7 +15,7 @@ part 'book.charcoal.g.dart';
 const String _package = 'package_name';
 const String _partExtension = '.charcoal.g.dart';
 
-/// Loading every source is slow, and tests only need what charcoal has.
+/// Loading every source is slow, and tests only need what charcoal uses.
 final Future<Map<AssetId, List<int>>> _charcoalSources = _loadCharcoalSources();
 
 Future<Map<AssetId, List<int>>> _loadCharcoalSources() async {
@@ -23,7 +23,8 @@ Future<Map<AssetId, List<int>>> _loadCharcoalSources() async {
   await readerWriter.testing.loadIsolateSources();
   return {
     for (final id in readerWriter.testing.assets)
-      if (id.package == 'charcoal') id: readerWriter.testing.readBytes(id),
+      if (id.package == 'charcoal' || id.package == 'meta')
+        id: readerWriter.testing.readBytes(id),
   };
 }
 

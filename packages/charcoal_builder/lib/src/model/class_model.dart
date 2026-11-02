@@ -6,6 +6,7 @@ final class const ClassModel({
   required this.constructor,
   required this.omit,
   required this.fields,
+  this.isImmutable = false,
 }) {
   final String name;
 
@@ -13,6 +14,9 @@ final class const ClassModel({
   final String constructor;
   final Omit omit;
   final List<FieldModel> fields;
+
+  /// Whether it is marked `@immutable`, so it compares by value.
+  final bool isImmutable;
 }
 
 final class const FieldModel({

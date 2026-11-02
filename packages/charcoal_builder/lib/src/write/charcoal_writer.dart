@@ -1,4 +1,5 @@
 import 'package:charcoal_builder/src/model/class_model.dart';
+import 'package:charcoal_builder/src/write/equality_writer.dart';
 import 'package:charcoal_builder/src/write/json_writer.dart';
 import 'package:dart_style/dart_style.dart';
 
@@ -26,6 +27,16 @@ abstract final class CharcoalWriter() {
     ).format(buffer.toString());
   }
 
+  static String _toStringOf(ClassModel model) {
+    final fields = model.fields
+        .map((field) {
+          final label = field.name.replaceAll(r'$', r'\$');
+          return '$label: \${\$it.${field.name}}';
+        })
+        .join(', ');
+    return '${model.name}($fields)';
+  }
+
   static String _mixin(ClassModel model) {
     final name = model.name;
     final entries = model.fields
@@ -42,6 +53,22 @@ mixin ${name}Charcoal {
   void writeJson(StringBuffer \$sink) => \$write(this as $name, \$sink);
 
   String toJsonString() => encodeJsonString(this as $name);
+
+  ${EqualityWriter.members(model)}
+
+  @override
+  String toString() {
+    final \$it = this as $name;
+    return '${_toStringOf(model)}';
+  }
+
+  static bool \$equals($name \$a, $name \$b) {
+    ${EqualityWriter.equals(model)}
+  }
+
+  static int \$hash($name \$it) {
+    ${EqualityWriter.hash(model)}
+  }
 
   static Map<String, Object?> \$encode($name \$it) => {$entries};
 
