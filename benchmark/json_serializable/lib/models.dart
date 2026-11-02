@@ -82,3 +82,15 @@ final class Catalog {
 
   Map<String, dynamic> toJson() => _$CatalogToJson(this);
 }
+
+@JsonSerializable(explicitToJson: true)
+final class Passage {
+  final String body;
+
+  const Passage({required this.body});
+
+  factory Passage.fromJson(Map<String, dynamic> json) =>
+      _$PassageFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PassageToJson(this);
+}
