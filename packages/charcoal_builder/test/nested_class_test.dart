@@ -103,23 +103,5 @@ void main() {
         contains('Generated code fails to compile'),
       );
     });
-
-    test('fail the build when generic', () async {
-      final result = await build('''
-        $header
-        @Charcoal()
-        final class Book(this.author) with BookCharcoal {
-          final Author<int> author;
-        }
-        @Charcoal()
-        final class Author<T>() with AuthorCharcoal;
-        ''');
-
-      expect(result.succeeded, isFalse);
-      expect(
-        result.errors.join('\n'),
-        contains('Book.author is a Author<int>'),
-      );
-    });
   });
 }

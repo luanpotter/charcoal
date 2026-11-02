@@ -68,7 +68,9 @@ abstract final class EqualityWriter() {
       ExtensionFieldType(:final representation) => _costOf(representation),
       NullableFieldType(:final inner) => _costOf(inner),
       IterableFieldType() || MapFieldType() => _Cost.collection,
-      ClassFieldType() || AdapterFieldType() => _Cost.nested,
+      ClassFieldType() ||
+      AdapterFieldType() ||
+      TypeParameterFieldType() => _Cost.nested,
     };
   }
 
@@ -83,13 +85,15 @@ abstract final class EqualityWriter() {
     switch (type) {
       case EnumFieldType():
         out.writeln('if (!identical($a, $b)) return false;');
-      case PrimitiveFieldType() || AdapterFieldType():
+      case PrimitiveFieldType() ||
+          AdapterFieldType() ||
+          TypeParameterFieldType():
         _compareEquals(out, a, b);
-      case ClassFieldType(:final isImmutable, :final name):
+      case ClassFieldType(:final isImmutable, :final owner):
         if (isImmutable) {
           _compareEquals(out, a, b);
         } else {
-          out.writeln('if (!${name}Charcoal.\$equals($a, $b)) return false;');
+          out.writeln('if (!$owner.\$equals($a, $b)) return false;');
         }
       case ExtensionFieldType(:final isValue, :final representation):
         if (isValue) {
@@ -213,13 +217,15 @@ abstract final class EqualityWriter() {
     switch (type) {
       case EnumFieldType():
         _mixValue(out, target, '$value.index');
-      case PrimitiveFieldType() || AdapterFieldType():
+      case PrimitiveFieldType() ||
+          AdapterFieldType() ||
+          TypeParameterFieldType():
         _mixValue(out, target, '$value.hashCode');
-      case ClassFieldType(:final isImmutable, :final name):
+      case ClassFieldType(:final isImmutable, :final owner):
         _mixValue(
           out,
           target,
-          isImmutable ? '$value.hashCode' : '${name}Charcoal.\$hash($value)',
+          isImmutable ? '$value.hashCode' : '$owner.\$hash($value)',
         );
       case ExtensionFieldType(:final isValue, :final representation):
         if (isValue) {

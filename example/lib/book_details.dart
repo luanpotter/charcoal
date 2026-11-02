@@ -8,6 +8,8 @@ import 'package:charcoal_example/edition.dart';
 import 'package:charcoal_example/genre.dart';
 import 'package:charcoal_example/id.dart';
 import 'package:charcoal_example/language.dart';
+import 'package:charcoal_example/lookup.dart';
+import 'package:charcoal_example/ranked.dart';
 import 'package:charcoal_example/translation.dart';
 
 part 'book_details.charcoal.g.dart';
@@ -28,6 +30,10 @@ final class BookDetails({
   this.price,
   this.reprintDates = const [],
   this.editions = const [],
+  this.topGenre,
+  this.topEdition,
+  this.copiesSold,
+  this.seriesName,
 }) with BookDetailsCharcoal {
   final List<String?> partTitles;
   final List<List<String>> chapterTitles;
@@ -43,4 +49,8 @@ final class BookDetails({
   final Price? price;
   final List<DateTime> reprintDates;
   final List<Edition> editions;
+  final Ranked<Genre>? topGenre;
+  final Ranked<Edition>? topEdition;
+  final Lookup<int>? copiesSold;
+  final Lookup<String>? seriesName;
 }

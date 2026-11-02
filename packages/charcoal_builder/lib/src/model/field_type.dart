@@ -63,10 +63,19 @@ final class const EnumFieldType(this.name) extends FieldType {
 
 final class const ClassFieldType(
   this.name, {
+  required this.owner,
   required this.isImmutable,
+  required this.mutableClass,
 }) extends FieldType {
+  /// How generated code declares it: `Book` or `Link<Genre>`.
   final String name;
+
+  /// What holds its generated code: `BookCharcoal` or `_$Link0`.
+  final String owner;
   final bool isImmutable;
+
+  @override
+  final String? mutableClass;
 
   @override
   bool get canBeEmpty => false;
@@ -75,7 +84,24 @@ final class const ClassFieldType(
   bool get isValue => isImmutable;
 
   @override
-  String? get mutableClass => isImmutable ? null : name;
+  bool get hasSetWithoutValues => false;
+}
+
+/// A type parameter, inside the generic class declaring it.
+///
+/// Each use of the class knows the real type, as only that code can write JSON
+/// or copy it. Here, it can only be compared with its own `==`, and shared.
+final class const TypeParameterFieldType(this.name) extends FieldType {
+  final String name;
+
+  @override
+  bool get canBeEmpty => false;
+
+  @override
+  bool get isValue => true;
+
+  @override
+  String? get mutableClass => null;
 
   @override
   bool get hasSetWithoutValues => false;

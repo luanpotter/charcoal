@@ -8,6 +8,7 @@ import 'package:charcoal_builder/src/write/json/map_codec.dart';
 import 'package:charcoal_builder/src/write/json/nullable_codec.dart';
 import 'package:charcoal_builder/src/write/json/primitive_codec.dart';
 import 'package:charcoal_builder/src/write/json/statements.dart';
+import 'package:charcoal_builder/src/write/json/type_parameter_codec.dart';
 
 /// Writes the code that takes one kind of field to and from JSON.
 ///
@@ -23,6 +24,7 @@ abstract class FieldCodec() {
       final IterableFieldType type => IterableCodec(type),
       final MapFieldType type => MapCodec(type),
       final NullableFieldType type => NullableCodec(type),
+      final TypeParameterFieldType type => TypeParameterCodec(type),
     };
   }
 

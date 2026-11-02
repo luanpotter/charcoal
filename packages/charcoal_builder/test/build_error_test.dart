@@ -36,7 +36,7 @@ void main() {
 
     final errors = result.errors.join('\n');
     expect(result.succeeded, isFalse);
-    for (final field in 'abcdefghijklm'.split('')) {
+    for (final field in 'abcdefghijklm'.split('')..remove('j')) {
       expect(errors, contains('Book.$field is a'));
     }
   });
@@ -108,17 +108,6 @@ void main() {
         abstract class Book() with BookCharcoal;
         ''',
         'Book is abstract',
-      );
-    });
-
-    test('a generic class', () async {
-      await expectBuildError(
-        '''
-        $header
-        @Charcoal()
-        final class Book<T>() with BookCharcoal;
-        ''',
-        'Book is generic',
       );
     });
 

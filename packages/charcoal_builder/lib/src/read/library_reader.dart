@@ -9,6 +9,7 @@ import 'package:charcoal_builder/src/charcoal_config.dart';
 import 'package:charcoal_builder/src/model/class_model.dart';
 import 'package:charcoal_builder/src/model/field_type.dart';
 import 'package:charcoal_builder/src/read/default_value_source.dart';
+import 'package:charcoal_builder/src/read/instantiation_graph.dart';
 
 final Uri _charcoalLibrary = Uri.parse('package:charcoal/src/charcoal.dart');
 final Uri _adapterLibrary = Uri.parse(
@@ -29,6 +30,18 @@ final class LibraryReader(this._resolver, this._config) {
   /// Every adapter the library being read can see.
   List<_Adapter> _adapters = const [];
 
+  /// The library being read, whose scope all generated code lives in.
+  late LibraryElement _library;
+
+  /// The type parameters of the generic class being read, if any.
+  Set<TypeParameterElement> _typeParameters = const {};
+
+  /// Each use of a generic class found so far, by how it is written.
+  final Map<String, ClassFieldType> _instantiations = {};
+
+  /// The uses of a generic class that were not read yet.
+  final List<(InterfaceType, ClassFieldType)> _pending = [];
+
   Future<LibraryModel> read(
     LibraryElement library, {
     required String partFile,
@@ -42,17 +55,73 @@ final class LibraryReader(this._resolver, this._config) {
       errors.add("Missing part: add `part '$partFile';` to this library.");
     }
 
+    _library = library;
     _adapters = _adaptersIn(library);
+    final classes = [
+      for (final element in covered)
+        if (!element.isSealed) await _readClass(element),
+    ];
+    final families = [
+      for (final element in covered)
+        if (element.isSealed) _readFamily(element),
+    ];
+
+    final instantiatedClasses = <ClassModel>[];
+    final instantiatedFamilies = <FamilyModel>[];
+    while (_pending.isNotEmpty) {
+      final (type, field) = _pending.removeLast();
+      final element = type.element;
+      if (element is ClassElement && element.isSealed) {
+        instantiatedFamilies.add(_readInstantiatedFamily(type, element, field));
+      } else if (element is ClassElement) {
+        final model = await _readInstantiatedClass(type, element, field);
+        instantiatedClasses.add(model);
+      }
+    }
+
     return LibraryModel(
-      classes: [
-        for (final element in covered)
-          if (!element.isSealed) await _readClass(element),
-      ],
-      families: [
-        for (final element in covered)
-          if (element.isSealed) _readFamily(element),
-      ],
+      classes: classes,
+      families: families,
+      instantiatedClasses: instantiatedClasses,
+      instantiatedFamilies: instantiatedFamilies,
     );
+  }
+
+  /// Its type parameters as declared, such as `<T extends num>`.
+  String _typeParametersOf(ClassElement element) {
+    if (element.typeParameters.isEmpty) {
+      return '';
+    }
+    final parameters = element.typeParameters.map((parameter) {
+      final bound = parameter.bound;
+      return bound == null
+          ? parameter.name!
+          : '${parameter.name} extends ${bound.getDisplayString()}';
+    });
+    return '<${parameters.join(', ')}>';
+  }
+
+  /// How the class itself writes its type, such as `Link<T>`.
+  String _selfNameOf(ClassElement element) {
+    final name = element.name!;
+    if (element.typeParameters.isEmpty) {
+      return name;
+    }
+    final parameters = element.typeParameters.map((e) => e.name!).join(', ');
+    return '$name<$parameters>';
+  }
+
+  /// Concrete classes below a sealed one, always in the same library.
+  Iterable<ClassElement> _leavesOf(ClassElement element) {
+    return element.library.classes.where((other) {
+      return !other.isAbstract &&
+          !other.isSealed &&
+          _supertypesOf(other).contains(element);
+    });
+  }
+
+  String _tagOf(ClassElement element) {
+    return _stringOption(element, 'tag') ?? element.name!;
   }
 
   /// Annotated, or below a sealed class that is.
@@ -116,9 +185,6 @@ final class LibraryReader(this._resolver, this._config) {
     if (element.isPrivate) {
       errors.add('$name is private, so it cannot be annotated.');
     }
-    if (element.typeParameters.isNotEmpty) {
-      errors.add('$name is generic, which is not supported yet.');
-    }
     if (_stringOption(element, 'tag') != null) {
       errors.add('$name sets a tag, which only a class it covers can.');
     }
@@ -128,17 +194,24 @@ final class LibraryReader(this._resolver, this._config) {
     }
     _checkSuperclass(element);
 
+    final isGeneric = element.typeParameters.isNotEmpty;
     final leaves = [
-      for (final other in element.library.classes)
-        if (!other.isAbstract &&
-            !other.isSealed &&
-            _supertypesOf(other).contains(element))
-          LeafModel(
-            name: other.name!,
-            tag: _stringOption(other, 'tag') ?? other.name!,
-            isImmutable: _isImmutable(other),
-          ),
+      for (final other in _leavesOf(element))
+        LeafModel(
+          pattern: _genericPatternOf(other, element),
+          owner: '${other.name}Charcoal',
+          tag: _tagOf(other),
+          isImmutable: _isImmutable(other),
+        ),
     ];
+    for (final other in _leavesOf(element)) {
+      if (!isGeneric && other.typeParameters.isNotEmpty) {
+        errors.add(
+          '${other.name} is generic but $name is not, so decoding a $name '
+          'could not know its type arguments.',
+        );
+      }
+    }
     if (leaves.isEmpty) {
       errors.add('$name is sealed, but has no classes to decode.');
     }
@@ -150,11 +223,138 @@ final class LibraryReader(this._resolver, this._config) {
     }
 
     return FamilyModel(
-      name: name,
+      name: _selfNameOf(element),
+      baseName: name,
+      owner: '${name}Charcoal',
       discriminator: _discriminatorOf(element),
       isImmutable: _isImmutable(element),
       leaves: leaves,
+      typeParameters: _typeParametersOf(element),
     );
+  }
+
+  /// One use of a generic sealed class, with only the leaves that can fit it.
+  FamilyModel _readInstantiatedFamily(
+    InterfaceType type,
+    ClassElement element,
+    ClassFieldType field,
+  ) {
+    final leaves = <LeafModel>[];
+    for (final other in _leavesOf(element)) {
+      final leafType = _instantiateLeaf(other, type);
+      if (leafType == null) {
+        continue;
+      }
+      final leaf = _fieldTypeOf(leafType, _library);
+      if (leaf is! ClassFieldType) {
+        errors.add(
+          '${field.name} needs ${other.name}, which this library cannot name.',
+        );
+        continue;
+      }
+      leaves.add(
+        LeafModel(
+          pattern: leaf.name,
+          owner: leaf.owner,
+          tag: _tagOf(other),
+          isImmutable: leaf.isImmutable,
+        ),
+      );
+    }
+    if (leaves.isEmpty) {
+      errors.add('${field.name} has no class below it that fits.');
+    }
+    return FamilyModel(
+      name: field.name,
+      baseName: element.name!,
+      owner: field.owner,
+      discriminator: _discriminatorOf(element),
+      isImmutable: field.isImmutable,
+      leaves: leaves,
+    );
+  }
+
+  /// The leaf with the type arguments it gets as [target], if it can be one.
+  InterfaceType? _instantiateLeaf(ClassElement leaf, InterfaceType target) {
+    final instantiated = _bindLeaf(leaf, target);
+    return instantiated != null &&
+            _library.typeSystem.isSubtypeOf(instantiated, target)
+        ? instantiated
+        : null;
+  }
+
+  /// How a generic sealed class matches a leaf, in its own type parameters.
+  String _genericPatternOf(ClassElement leaf, ClassElement root) {
+    return _bindLeaf(leaf, root.thisType)?.getDisplayString() ?? leaf.name!;
+  }
+
+  /// The leaf with whatever type arguments [target] gives it, if all are known.
+  InterfaceType? _bindLeaf(ClassElement leaf, InterfaceType target) {
+    final declared = leaf.thisType.asInstanceOf(target.element)?.typeArguments;
+    if (declared == null) {
+      return null;
+    }
+    final bound = <TypeParameterElement, DartType>{};
+    for (final (index, argument) in declared.indexed) {
+      if (argument is TypeParameterType) {
+        bound[argument.element] ??= target.typeArguments[index];
+      }
+    }
+    final arguments = [
+      for (final parameter in leaf.typeParameters) bound[parameter],
+    ];
+    if (arguments.contains(null)) {
+      return null;
+    }
+    return leaf.instantiate(
+      typeArguments: arguments.nonNulls.toList(),
+      nullabilitySuffix: NullabilitySuffix.none,
+    );
+  }
+
+  /// One use of a generic class, with fields of the real types.
+  Future<ClassModel> _readInstantiatedClass(
+    InterfaceType type,
+    ClassElement element,
+    ClassFieldType field,
+  ) async {
+    final wire = _wireConstructor(element);
+    final constructor = type.constructors
+        .where((candidate) => candidate.name == wire?.name)
+        .firstOrNull;
+    final isReachable =
+        constructor != null &&
+        (!constructor.isPrivate || element.library == _library);
+    if (!isReachable) {
+      errors.add('${field.name} has no constructor this library can call.');
+    }
+
+    _typeParameters = const {};
+    final fields = constructor == null
+        ? const <FieldModel>[]
+        : await _readFields(element, constructor, label: field.name);
+    for (final model in fields) {
+      _checkSets('${field.name}.${model.name}', model);
+    }
+    return ClassModel(
+      name: field.name,
+      baseName: element.name!,
+      constructor: constructor == null || constructor.name == 'new'
+          ? field.name
+          : '${field.name}.${constructor.name}',
+      owner: field.owner,
+      omit: _omitOf(element),
+      fields: fields,
+      isImmutable: field.isImmutable,
+      familyTag: _familyTagOf(element),
+      handWritten: _handWrittenOf(element),
+    );
+  }
+
+  FamilyTag? _familyTagOf(ClassElement element) {
+    return _rootsOf(element).isEmpty
+        ? null
+        : FamilyTag(key: _discriminatorOf(element), value: _tagOf(element));
   }
 
   void _checkSuperclass(ClassElement element) {
@@ -247,14 +447,13 @@ final class LibraryReader(this._resolver, this._config) {
     } else if (!element.isFinal) {
       errors.add('$name must be final, or sealed, so that no subclass exists.');
     }
-    if (element.typeParameters.isNotEmpty) {
-      errors.add('$name is generic, which is not supported yet.');
-    }
     _checkSuperclass(element);
     if (!await _hasMixin(element)) {
       errors.add('$name must declare `with ${name}Charcoal`.');
     }
 
+    final selfName = _selfNameOf(element);
+    final owner = '${name}Charcoal';
     final constructor = _wireConstructor(element);
     if (constructor == null) {
       errors.add(
@@ -262,32 +461,34 @@ final class LibraryReader(this._resolver, this._config) {
         'it needs an unnamed or a primary one.',
       );
       return ClassModel(
-        name: name,
-        constructor: name,
+        name: selfName,
+        baseName: name,
+        constructor: selfName,
+        owner: owner,
         omit: _config.omit,
         fields: const [],
       );
     }
 
-    final fields = await _readFields(element, constructor);
+    _typeParameters = element.typeParameters.toSet();
+    final fields = await _readFields(element, constructor, label: name);
+    _typeParameters = const {};
     _checkOtherFields(element, fields);
     _checkEquality(element, fields);
     _checkOptions(element, fields);
 
     return ClassModel(
-      name: name,
+      name: selfName,
+      baseName: name,
       constructor: constructor.name == 'new'
-          ? name
-          : '$name.${constructor.name}',
+          ? selfName
+          : '$selfName.${constructor.name}',
+      owner: owner,
       omit: _omitOf(element),
       fields: fields,
+      typeParameters: _typeParametersOf(element),
       isImmutable: _isImmutable(element),
-      familyTag: _rootsOf(element).isEmpty
-          ? null
-          : FamilyTag(
-              key: _discriminatorOf(element),
-              value: _stringOption(element, 'tag') ?? name,
-            ),
+      familyTag: _familyTagOf(element),
       handWritten: _handWrittenOf(element),
     );
   }
@@ -310,18 +511,22 @@ final class LibraryReader(this._resolver, this._config) {
     final isImmutable = _isImmutable(element);
     for (final field in fields) {
       final label = '$name.${field.name}';
-      if (field.type.hasSetWithoutValues) {
-        errors.add(
-          '$label has a Set of values that do not compare by value, so it '
-          'could never compare by content: use a List, or a @immutable class.',
-        );
-      }
+      _checkSets(label, field);
       if (isImmutable && field.type.mutableClass != null) {
         errors.add(
           '$label holds a ${field.type.mutableClass}, which is not @immutable, '
           'so $name cannot be either.',
         );
       }
+    }
+  }
+
+  void _checkSets(String label, FieldModel field) {
+    if (field.type.hasSetWithoutValues) {
+      errors.add(
+        '$label has a Set of values that do not compare by value, so it '
+        'could never compare by content: use a List, or a @immutable class.',
+      );
     }
   }
 
@@ -445,25 +650,26 @@ final class LibraryReader(this._resolver, this._config) {
 
   Future<List<FieldModel>> _readFields(
     ClassElement element,
-    ConstructorElement constructor,
-  ) async {
+    ConstructorElement constructor, {
+    required String label,
+  }) async {
     final fields = <FieldModel>[];
     for (final parameter in constructor.formalParameters) {
       final parameterName = parameter.name!;
-      final label = '${element.name}.$parameterName';
+      final fieldLabel = '$label.$parameterName';
       if (!_readsItsOwnField(parameter)) {
         errors.add(
-          '$label must be a `this.$parameterName` or `super.$parameterName` '
-          'parameter.',
+          '$fieldLabel must be a `this.$parameterName` or '
+          '`super.$parameterName` parameter.',
         );
         continue;
       }
 
-      final type = _fieldTypeOf(parameter.type, constructor.library);
+      final type = _fieldTypeOf(parameter.type, _library);
       if (type == null) {
         errors.add(
-          '$label is a ${parameter.type}, which charcoal cannot serialize. '
-          'If it has a CharcoalAdapter, this library needs to import it.',
+          '$fieldLabel is a ${parameter.type}, which charcoal cannot serialize.'
+          ' If it has a CharcoalAdapter, this library needs to import it.',
         );
         continue;
       }
@@ -476,7 +682,7 @@ final class LibraryReader(this._resolver, this._config) {
         isDefaultNull: defaultValue?.isNull ?? false,
         isDefaultEmpty: defaultValue != null && _isEmpty(defaultValue),
       );
-      _checkOmit(label, field, _omitOf(element));
+      _checkOmit(fieldLabel, field, _omitOf(element));
       fields.add(field);
     }
     return fields;
@@ -579,6 +785,7 @@ final class LibraryReader(this._resolver, this._config) {
   FieldType? _fieldTypeOf(DartType type, LibraryElement library) {
     final inner =
         _adapterOf(type, library) ??
+        _typeParameterOf(type) ??
         _primitiveOf(type) ??
         _enumOf(type, library) ??
         _classOf(type, library) ??
@@ -588,6 +795,13 @@ final class LibraryReader(this._resolver, this._config) {
       return NullableFieldType(inner);
     }
     return inner;
+  }
+
+  /// Null unless the class being read declares it.
+  FieldType? _typeParameterOf(DartType type) {
+    return type is TypeParameterType && _typeParameters.contains(type.element)
+        ? TypeParameterFieldType(type.element.name!)
+        : null;
   }
 
   /// Null unless generated code can name it and its representation.
@@ -614,6 +828,9 @@ final class LibraryReader(this._resolver, this._config) {
   }
 
   bool _isNameable(DartType type, LibraryElement library) {
+    if (type is TypeParameterType) {
+      return _typeParameters.contains(type.element);
+    }
     final element = type.element;
     if (element != null && !_isVisible(element, library)) {
       return false;
@@ -736,14 +953,98 @@ final class LibraryReader(this._resolver, this._config) {
   FieldType? _classOf(DartType type, LibraryElement library) {
     final element = type.element;
     if (element is! ClassElement ||
+        type is! InterfaceType ||
         !_isCovered(element) ||
         (element.isAbstract && !element.isSealed) ||
-        element.typeParameters.isNotEmpty) {
+        !_isVisible(element, library)) {
       return null;
     }
-    return _isVisible(element, library)
-        ? ClassFieldType(element.name!, isImmutable: _isImmutable(element))
-        : null;
+    if (element.typeParameters.isNotEmpty) {
+      return _genericClassOf(type, element, library);
+    }
+    final name = element.name!;
+    final isImmutable = _isImmutable(element);
+    return ClassFieldType(
+      name,
+      owner: '${name}Charcoal',
+      isImmutable: isImmutable,
+      mutableClass: isImmutable ? null : name,
+    );
+  }
+
+  /// A use of a generic class, read later as it could well hold itself.
+  FieldType? _genericClassOf(
+    InterfaceType type,
+    ClassElement element,
+    LibraryElement library,
+  ) {
+    final name = element.name!;
+    final written = type.typeArguments
+        .map((argument) => argument.getDisplayString())
+        .join(', ');
+    final typeName = '$name<$written>';
+    final isClassImmutable = _isImmutable(element);
+
+    if (type.typeArguments.any(_mentionsTypeParameter)) {
+      return type.typeArguments.every((e) => _isNameable(e, library))
+          ? ClassFieldType(
+              typeName,
+              owner: '${name}Charcoal',
+              isImmutable: isClassImmutable,
+              mutableClass: isClassImmutable ? null : typeName,
+            )
+          : null;
+    }
+
+    final known = _instantiations[typeName];
+    if (known != null) {
+      return known;
+    }
+    final arguments = type.typeArguments
+        .map((argument) => _fieldTypeOf(argument, library))
+        .toList();
+    if (arguments.contains(null)) {
+      return null;
+    }
+    final growing = _growingTypeIn(element);
+    if (growing != null) {
+      _addError(
+        '$name cannot be generated for each use, as it needs a $growing, '
+        'whose type arguments would grow forever.',
+      );
+      return null;
+    }
+
+    final held = arguments.nonNulls;
+    final field = ClassFieldType(
+      typeName,
+      owner: '_\$$name${_instantiations.length}',
+      isImmutable: isClassImmutable && held.every((e) => e.isValue),
+      mutableClass: isClassImmutable
+          ? held.map((e) => e.mutableClass).nonNulls.firstOrNull
+          : typeName,
+    );
+    _instantiations[typeName] = field;
+    _pending.add((type, field));
+    return field;
+  }
+
+  String? _growingTypeIn(ClassElement element) {
+    final graph = InstantiationGraph(
+      (other) => _isCovered(other) && other.typeParameters.isNotEmpty,
+      (other) => other.isSealed
+          ? const []
+          : _wireConstructor(other)?.formalParameters.map((e) => e.type) ??
+                const [],
+      (other) => other.isSealed ? _leavesOf(other) : const [],
+    );
+    return graph.growingTypeIn(element);
+  }
+
+  bool _mentionsTypeParameter(DartType type) {
+    return type is TypeParameterType ||
+        (type is InterfaceType &&
+            type.typeArguments.any(_mentionsTypeParameter));
   }
 
   bool _isVisible(Element element, LibraryElement library) {
