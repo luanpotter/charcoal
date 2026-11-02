@@ -68,10 +68,10 @@ final class MapCodec(this._type) extends FieldCodec {
     out.literal('}');
   }
 
-  /// A key that is not a string is an int or a name, which need no escaping.
+  /// An int or a name needs no escaping, unlike whatever an adapter wrote.
   void _writeKey(Statements out, String key) {
     final text = _keyToString(_type.key, key);
-    if (_isStringKey(_type.key)) {
+    if (_isStringKey(_type.key) || _type.key is AdapterFieldType) {
       out.code('CharcoalJson.writeString(\$sink, $text);');
     } else {
       out
@@ -92,6 +92,7 @@ final class MapCodec(this._type) extends FieldCodec {
   String _keyToString(FieldType key, String value) {
     return switch (key) {
       EnumFieldType() => FieldCodec.of(key).encode(value, 0),
+      AdapterFieldType(:final adapter) => '$adapter.encode($value)',
       ExtensionFieldType(:final representation) => _keyToString(
         representation,
         '($value as ${FieldCodec.of(representation).typeName})',
@@ -104,6 +105,7 @@ final class MapCodec(this._type) extends FieldCodec {
   String _keyFromString(FieldType key, String value) {
     return switch (key) {
       EnumFieldType(:final name) => '$name.values.byName($value)',
+      AdapterFieldType(:final adapter) => '$adapter.decode($value)',
       ExtensionFieldType(:final typeName, :final representation) =>
         '(${_keyFromString(representation, value)}) as $typeName',
       PrimitiveFieldType(primitive: DartPrimitive.int) => 'int.parse($value)',

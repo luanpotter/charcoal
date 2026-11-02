@@ -203,8 +203,9 @@ final class const IterableFieldType(
 
 /// A JSON object, built through `ofClass.of` unless it is a core `Map`.
 ///
-/// The key is a string, an int, an enum or an extension type over a string or
-/// an int, all of which can turn into the string JSON needs.
+/// The key is a string, an int, an enum, an extension type over a string or an
+/// int, or a type whose adapter writes a string, all of which can turn into the
+/// string JSON needs.
 final class const MapFieldType(
   this.key,
   this.value, {

@@ -29,6 +29,7 @@ final class BookDetails({
   this.translations,
   this.price,
   this.reprintDates = const [],
+  this.printRunByDate = const {},
   this.editions = const [],
   this.topGenre,
   this.topEdition,
@@ -47,6 +48,7 @@ final class BookDetails({
   final Map<Language, Translation>? translations;
   final Price? price;
   final List<DateTime> reprintDates;
+  final Map<DateTime, int> printRunByDate;
   final List<Edition> editions;
   final Ranked<Genre>? topGenre;
   final Ranked<Edition>? topEdition;

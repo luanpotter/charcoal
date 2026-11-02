@@ -1042,6 +1042,20 @@ final class LibraryReader(this._resolver, this._config) {
     if (type.nullabilitySuffix != NullabilitySuffix.none) {
       return null;
     }
+    final adapted = _adapterOf(type, library);
+    if (adapted is AdapterFieldType) {
+      final wire = adapted.wire;
+      final writesString =
+          wire is PrimitiveFieldType && wire.primitive == DartPrimitive.string;
+      if (!writesString) {
+        _addError(
+          'A $type cannot be a map key, as ${adapted.adapter} does not write a '
+          'String, which is what JSON keys are.',
+        );
+        return null;
+      }
+      return adapted;
+    }
     final extension = _extensionOf(type, library);
     if (extension is ExtensionFieldType) {
       final representation = extension.representation;
