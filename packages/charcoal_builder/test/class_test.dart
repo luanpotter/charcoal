@@ -9,7 +9,7 @@ void main() {
         '''
       $header
       @Charcoal()
-      class Book({required this.title, required this.rating, this.notes})
+      final class Book({required this.title, required this.rating, this.notes})
           with BookCharcoal {
         final String title;
         final double rating;
@@ -74,7 +74,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book.of(this.title) with BookCharcoal {
+        final class Book.of(this.title) with BookCharcoal {
           final String title;
         }
         ''',
@@ -89,10 +89,10 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book() with BookCharcoal;
+        final class Book() with BookCharcoal;
         class Publisher {}
         @Charcoal()
-        class Author() with AuthorCharcoal;
+        final class Author() with AuthorCharcoal;
         ''',
         outputs: {
           output: decodedMatches(
@@ -113,7 +113,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(this.title) with BookCharcoal {
+        final class Book(this.title) with BookCharcoal {
           static const shelfLife = 1;
           final String title;
           late final int length = title.length;
@@ -149,7 +149,7 @@ void main() {
           const Charcoal();
         }
         @Charcoal()
-        class Book {}
+        final class Book {}
         ''');
 
       expect(result.succeeded, isTrue);

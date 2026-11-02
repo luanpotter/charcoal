@@ -13,7 +13,7 @@ void main() {
         $header
         $id
         @Charcoal()
-        class Book(this.id, this.parent) with BookCharcoal {
+        final class Book(this.id, this.parent) with BookCharcoal {
           final Id<Book> id;
           final Id<Book>? parent;
         }
@@ -44,7 +44,7 @@ void main() {
         enum Genre { fantasy }
         extension type Main(Genre genre) {}
         @Charcoal()
-        class Book(this.main) with BookCharcoal {
+        final class Book(this.main) with BookCharcoal {
           final Main main;
         }
         ''',
@@ -72,7 +72,7 @@ void main() {
         import 'other.dart';
         $header
         @Charcoal()
-        class Book(this.a, this.b) with BookCharcoal {
+        final class Book(this.a, this.b) with BookCharcoal {
           final PrivateField a;
           final PrivateConstructor b;
         }
@@ -105,7 +105,7 @@ void main() {
         $header
         extension type Box<T>(T value) {}
         @Charcoal()
-        class Book(this.box) with BookCharcoal {
+        final class Book(this.box) with BookCharcoal {
           final Box<int> box;
         }
         ''',
@@ -119,7 +119,7 @@ void main() {
         import 'other.dart' as o;
         $header
         @Charcoal()
-        class Book(this.a, this.b) with BookCharcoal {
+        final class Book(this.a, this.b) with BookCharcoal {
           final o.Id a;
           final Tagged<o.Tag> b;
         }

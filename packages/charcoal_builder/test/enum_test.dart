@@ -13,7 +13,7 @@ void main() {
         $header
         $genre
         @Charcoal()
-        class Book(this.genre, this.subgenre) with BookCharcoal {
+        final class Book(this.genre, this.subgenre) with BookCharcoal {
           final Genre genre;
           final Genre? subgenre;
         }
@@ -41,7 +41,7 @@ void main() {
         import 'genre.dart';
         $header
         @Charcoal()
-        class Book(this.genre) with BookCharcoal {
+        final class Book(this.genre) with BookCharcoal {
           final Genre genre;
         }
         ''',
@@ -58,7 +58,7 @@ void main() {
         import 'genre.dart' as g;
         $header
         @Charcoal()
-        class Book(this.genre) with BookCharcoal {
+        final class Book(this.genre) with BookCharcoal {
           final g.Genre genre;
         }
         ''',
@@ -78,7 +78,7 @@ void main() {
           String get name => 'a"b';
         }
         @Charcoal()
-        class Book(this.genre) with BookCharcoal {
+        final class Book(this.genre) with BookCharcoal {
           final Genre genre;
         }
         ''',

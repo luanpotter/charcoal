@@ -11,7 +11,7 @@ void main() {
         $header
         @immutable
         @Charcoal()
-        class Book(this.tags) with BookCharcoal {
+        final class Book(this.tags) with BookCharcoal {
           final List<String> tags;
         }
         ''',
@@ -37,13 +37,13 @@ void main() {
         enum Genre { fantasy }
         @immutable
         @Charcoal()
-        class Author() with AuthorCharcoal;
+        final class Author() with AuthorCharcoal;
         @Charcoal()
-        class Details() with DetailsCharcoal;
+        final class Details() with DetailsCharcoal;
         extension type Shelf(List<Details> books) {}
         extension type Id(int value) {}
         @Charcoal()
-        class Book(
+        final class Book(
           this.id,
           this.genre,
           this.author,
@@ -110,7 +110,7 @@ void main() {
       $header
       @immutable
       @Charcoal()
-      class Book(this.title, {this.notes, this.quotes = const []})
+      final class Book(this.title, {this.notes, this.quotes = const []})
           with BookCharcoal {
         final String title;
         final String? notes;
@@ -144,11 +144,11 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(this.notes) with BookCharcoal {
+        final class Book(this.notes) with BookCharcoal {
           final String? notes;
         }
         @Charcoal()
-        class Author(this.notes) with AuthorCharcoal {
+        final class Author(this.notes) with AuthorCharcoal {
           final String? notes;
         }
         ''',
@@ -167,7 +167,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(this.title) with BookCharcoal {
+        final class Book(this.title) with BookCharcoal {
           final String title;
         }
         ''',
@@ -183,7 +183,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book() with BookCharcoal;
+        final class Book() with BookCharcoal;
         ''',
         outputs: {
           output: decodedMatches(contains('Book Function() get copyWith')),
@@ -198,7 +198,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(this.identical) with BookCharcoal {
+        final class Book(this.identical) with BookCharcoal {
           final String? identical;
         }
         ''',
@@ -237,7 +237,7 @@ void main() {
       '''
       $header
       @Charcoal()
-      class Book(this.title) with BookCharcoal {
+      final class Book(this.title) with BookCharcoal {
         final String title;
 
         @override

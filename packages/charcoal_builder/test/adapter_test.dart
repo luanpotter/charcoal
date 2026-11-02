@@ -21,7 +21,7 @@ void main() {
         $header
         $adapter
         @Charcoal()
-        class Book(this.a, this.b, this.c) with BookCharcoal {
+        final class Book(this.a, this.b, this.c) with BookCharcoal {
           final Stamp a;
           final Stamp? b;
           final List<Stamp> c;
@@ -57,7 +57,7 @@ void main() {
           Genre decode(int json) => Genre.values[json];
         }
         @Charcoal()
-        class Book(this.genre) with BookCharcoal {
+        final class Book(this.genre) with BookCharcoal {
           final Genre genre;
         }
         ''',
@@ -83,7 +83,7 @@ void main() {
     };
     const book = '''
       @Charcoal()
-      class Book(this.a) with BookCharcoal {
+      final class Book(this.a) with BookCharcoal {
         final Stamp a;
       }
     ''';
@@ -147,7 +147,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        class Book(
+        final class Book(
           this.date,
           this.uri,
           this.delay,
@@ -190,7 +190,7 @@ void main() {
         import 'bundle.dart';
         part 'book.charcoal.g.dart';
         @Charcoal()
-        class Book(this.date) with BookCharcoal {
+        final class Book(this.date) with BookCharcoal {
           final DateTime date;
         }
         ''',
@@ -229,7 +229,7 @@ void main() {
           DateTime decode(int json) => DateTime(2000);
         }
         @Charcoal()
-        class Book(this.date) with BookCharcoal {
+        final class Book(this.date) with BookCharcoal {
           final DateTime date;
         }
         ''',
@@ -279,7 +279,7 @@ void main() {
           DateTime decode(Object json) => DateTime(2000);
         }
         @Charcoal()
-        class Book(this.title) with BookCharcoal {
+        final class Book(this.title) with BookCharcoal {
           final String title;
         }
         ''',
@@ -296,7 +296,7 @@ void main() {
           class Stamp {}
           $code
           @Charcoal()
-          class Book(this.a) with BookCharcoal {
+          final class Book(this.a) with BookCharcoal {
             final Stamp a;
           }
           ''', message);
@@ -319,7 +319,7 @@ void main() {
             $body
           }
           @Charcoal()
-          class Book(this.a) with BookCharcoal {
+          final class Book(this.a) with BookCharcoal {
             final Stamp a;
           }
           ''',
@@ -371,12 +371,12 @@ void main() {
           '''
           $header
           @Charcoal()
-          class Stamp() with StampCharcoal;
+          final class Stamp() with StampCharcoal;
           class const A() implements CharcoalAdapter<Stamp, int> {
             $body
           }
           @Charcoal()
-          class Book(this.a) with BookCharcoal {
+          final class Book(this.a) with BookCharcoal {
             final Stamp a;
           }
           ''',
@@ -410,7 +410,7 @@ void main() {
             Stamp decode(int json) => Stamp();
           }
           @Charcoal()
-          class Book(this.a) with BookCharcoal {
+          final class Book(this.a) with BookCharcoal {
             final Stamp a;
           }
           ''',
