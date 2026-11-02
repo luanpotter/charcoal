@@ -42,6 +42,9 @@ final class LibraryReader(this._resolver, this._config) {
   /// The uses of a generic class that were not read yet.
   final List<(InterfaceType, ClassFieldType)> _pending = [];
 
+  /// Which classes a holder can drop, as far as they were looked at.
+  final Map<ClassElement, bool> _canBeEmpty = {};
+
   Future<LibraryModel> read(
     LibraryElement library, {
     required String partFile,
@@ -392,7 +395,13 @@ final class LibraryReader(this._resolver, this._config) {
   Set<String> _handWrittenOf(ClassElement element) {
     final owners = [element, ..._superclassesOf(element)];
     return {
-      for (final member in const ['==', 'toString', 'copy', 'copyWith'])
+      for (final member in const [
+        '==',
+        'toString',
+        'copy',
+        'copyWith',
+        'isEmpty',
+      ])
         if (owners.any((owner) => _defines(owner, member))) member,
     };
   }
@@ -495,7 +504,63 @@ final class LibraryReader(this._resolver, this._config) {
       isImmutable: _isImmutable(element),
       familyTag: _familyTagOf(element),
       handWritten: _handWrittenOf(element),
+      generatesIsEmpty:
+          _canClassBeEmpty(element) &&
+          !_handWrittenOf(element).contains('isEmpty'),
     );
+  }
+
+  /// Whether a holder can drop it: only a class using `Omit.empty`, as anything
+  /// else writes what it holds, and only one that has no tag to keep.
+  bool _canClassBeEmpty(ClassElement element) {
+    final known = _canBeEmpty[element];
+    if (known != null) {
+      return known;
+    }
+    // A class that needs itself to be empty could never be built to begin with.
+    _canBeEmpty[element] = false;
+    final canBeEmpty =
+        !element.isAbstract &&
+        !element.isSealed &&
+        element.typeParameters.isEmpty &&
+        _rootsOf(element).isEmpty &&
+        _omitOf(element) == Omit.empty &&
+        (_handWrittenOf(element).contains('isEmpty') ||
+            _hasOnlyWhatCanBeEmpty(element));
+    return _canBeEmpty[element] = canBeEmpty;
+  }
+
+  bool _hasOnlyWhatCanBeEmpty(ClassElement element) {
+    final constructor = _wireConstructor(element);
+    return constructor != null &&
+        constructor.formalParameters.every((parameter) {
+          final type = _memberTypeOf(element.thisType, parameter.name!);
+          return type != null && _canTypeBeEmpty(type);
+        });
+  }
+
+  bool _canTypeBeEmpty(DartType type) {
+    if (type.nullabilitySuffix == NullabilitySuffix.question) {
+      return true;
+    }
+    final isAdapted = _adapters.any((adapter) => adapter.adapted == type);
+    if (isAdapted) {
+      return false;
+    }
+    if (_primitiveOf(type) case final PrimitiveFieldType primitive) {
+      return primitive.isNumber;
+    }
+    final element = type.element;
+    if (type is InterfaceType) {
+      final provider = _library.typeProvider;
+      if (type.asInstanceOf(provider.iterableElement) != null ||
+          type.asInstanceOf(provider.mapElement) != null) {
+        return true;
+      }
+    }
+    return element is ClassElement &&
+        _isCovered(element) &&
+        _canClassBeEmpty(element);
   }
 
   bool _isImmutable(ClassElement element) {
@@ -795,7 +860,26 @@ final class LibraryReader(this._resolver, this._config) {
         value.toDoubleValue() == 0 ||
         (value.toListValue()?.isEmpty ?? false) ||
         (value.toSetValue()?.isEmpty ?? false) ||
-        (value.toMapValue()?.isEmpty ?? false);
+        (value.toMapValue()?.isEmpty ?? false) ||
+        _isEmptyClass(value);
+  }
+
+  /// A constant class, every field of which holds nothing, can be read as such.
+  bool _isEmptyClass(DartObject value) {
+    final element = value.type?.element;
+    if (element is! ClassElement || !_canClassBeEmpty(element)) {
+      return false;
+    }
+    // A hand-written `isEmpty` cannot run here: only a round trip can tell.
+    if (_handWrittenOf(element).contains('isEmpty')) {
+      return true;
+    }
+    final constructor = _wireConstructor(element);
+    return constructor != null &&
+        constructor.formalParameters.every((parameter) {
+          final field = value.getField(parameter.name!);
+          return field != null && (field.isNull || _isEmpty(field));
+        });
   }
 
   void _checkOtherFields(ClassElement element, List<FieldModel> fields) {
@@ -1020,6 +1104,7 @@ final class LibraryReader(this._resolver, this._config) {
       owner: '${name}Charcoal',
       isImmutable: isImmutable,
       mutableClass: isImmutable ? null : name,
+      canBeEmpty: _canClassBeEmpty(element),
     );
   }
 
@@ -1043,6 +1128,7 @@ final class LibraryReader(this._resolver, this._config) {
               owner: '${name}Charcoal',
               isImmutable: isClassImmutable,
               mutableClass: isClassImmutable ? null : typeName,
+              canBeEmpty: false,
             )
           : null;
     }
@@ -1074,6 +1160,7 @@ final class LibraryReader(this._resolver, this._config) {
       mutableClass: isClassImmutable
           ? held.map((e) => e.mutableClass).nonNulls.firstOrNull
           : typeName,
+      canBeEmpty: false,
     );
     _instantiations[typeName] = field;
     _pending.add((type, field));

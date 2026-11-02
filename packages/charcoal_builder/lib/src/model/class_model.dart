@@ -30,6 +30,7 @@ final class const ClassModel({
   this.isImmutable = false,
   this.familyTag,
   this.handWritten = const {},
+  this.generatesIsEmpty = false,
 }) {
   /// How generated code declares it: `Book` or `Link<T>`.
   final String name;
@@ -56,6 +57,9 @@ final class const ClassModel({
 
   /// What it or a superclass defines, which is not to be generated.
   final Set<String> handWritten;
+
+  /// Whether every field can be dropped, so that a holder can drop it too.
+  final bool generatesIsEmpty;
 
   /// Whether JSON has to wait for the type arguments of each use.
   bool get isGeneric => typeParameters.isNotEmpty;
