@@ -10,7 +10,7 @@ final class const Translation({
   required this.title,
   required this.translator,
   this.revision = _firstRevision,
-  this.reviewers = const [],
+  List<Author>? reviewers,
   this.originalLanguage = Language.english,
   this.notes = '',
 }) with TranslationCharcoal {
@@ -19,7 +19,7 @@ final class const Translation({
   final String title;
   final Author translator;
   final int revision;
-  final List<Author> reviewers;
+  final List<Author> reviewers = reviewers ?? const [];
   final Language originalLanguage;
   final String notes;
 }

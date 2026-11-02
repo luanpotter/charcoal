@@ -49,12 +49,12 @@ abstract final class JsonWriter() {
   /// A missing key takes the default, and so does a null, if it cannot be one.
   static String _decodeValue(FieldModel field, int index) {
     final key = _mapKeyOf(field);
-    final codec = FieldCodec.of(field.type);
+    final codec = FieldCodec.of(field.parameterType);
     final value = '\$json[$key]';
     if (field.defaultValue == null) {
       return codec.decode(value, 0);
     }
-    if (field.type is NullableFieldType) {
+    if (field.parameterType is NullableFieldType) {
       return '\$json.containsKey($key) ? ${codec.decode(value, 0)} : \$d$index';
     }
     return 'switch ($value) { '
@@ -82,7 +82,7 @@ abstract final class JsonWriter() {
   }
 
   static String _defaultOf(FieldModel field, int index, String value) {
-    final type = FieldCodec.of(field.type).typeName;
+    final type = FieldCodec.of(field.parameterType).typeName;
     return 'static const $type \$d$index = $value;';
   }
 
@@ -100,8 +100,8 @@ abstract final class JsonWriter() {
     final out = StringBuffer();
     final fields = model.fields;
     for (final (index, field) in fields.indexed) {
-      final type = FieldCodec.of(field.type).typeName;
-      final local = field.type is NullableFieldType ? type : '$type?';
+      final type = FieldCodec.of(field.parameterType).typeName;
+      final local = field.parameterType is NullableFieldType ? type : '$type?';
       final initial = field.defaultValue == null ? '' : ' = \$d$index';
       out.writeln('$local \$f$index$initial;');
     }
@@ -125,7 +125,7 @@ abstract final class JsonWriter() {
     final arguments = fields.indexed
         .map((entry) {
           final (index, field) = entry;
-          final local = field.type is NullableFieldType
+          final local = field.parameterType is NullableFieldType
               ? '\$f$index'
               : '\$f$index!';
           return field.isNamedParameter ? '${field.name}: $local' : local;
@@ -136,9 +136,10 @@ abstract final class JsonWriter() {
   }
 
   static void _readField(StringBuffer out, FieldModel field, int index) {
-    final codec = FieldCodec.of(field.type);
+    final codec = FieldCodec.of(field.parameterType);
     final target = '\$f$index';
-    if (field.defaultValue == null || field.type is NullableFieldType) {
+    if (field.defaultValue == null ||
+        field.parameterType is NullableFieldType) {
       codec.read(out, target, 0);
       return;
     }
