@@ -1,6 +1,7 @@
 import 'package:charcoal_builder/src/model/class_model.dart';
 import 'package:charcoal_builder/src/write/copy_writer.dart';
 import 'package:charcoal_builder/src/write/equality_writer.dart';
+import 'package:charcoal_builder/src/write/family_writer.dart';
 import 'package:charcoal_builder/src/write/json_writer.dart';
 import 'package:dart_style/dart_style.dart';
 
@@ -9,28 +10,46 @@ abstract final class CharcoalWriter() {
 
   static String write({
     required String partOf,
-    required Iterable<ClassModel> classes,
+    required LibraryModel model,
   }) {
     final buffer = StringBuffer()
       ..writeln('// dart format width=$_pageWidth')
       ..writeln('// GENERATED CODE - DO NOT MODIFY BY HAND')
       ..writeln()
       ..writeln("part of '$partOf';");
-    if (CopyWriter.needsSentinel(classes)) {
+    if (CopyWriter.needsSentinel(model.classes)) {
       buffer
         ..writeln()
         ..writeln(CopyWriter.sentinel);
     }
-    for (final model in classes) {
+    for (final classModel in model.classes) {
       buffer
         ..writeln()
-        ..writeln(_mixin(model));
+        ..writeln(_mixin(classModel));
+    }
+    for (final family in model.families) {
+      buffer
+        ..writeln()
+        ..writeln(FamilyWriter.write(family));
     }
 
     return DartFormatter(
       languageVersion: DartFormatter.latestLanguageVersion,
       pageWidth: _pageWidth,
     ).format(buffer.toString());
+  }
+
+  static String _toString(ClassModel model) {
+    if (model.inherited.contains('toString')) {
+      return '';
+    }
+    return '''
+  @override
+  String toString() {
+    final \$it = this as ${model.name};
+    return '${_toStringOf(model)}';
+  }
+''';
   }
 
   static String _toStringOf(ClassModel model) {
@@ -45,9 +64,7 @@ abstract final class CharcoalWriter() {
 
   static String _mixin(ClassModel model) {
     final name = model.name;
-    final entries = model.fields
-        .map((field) => JsonWriter.encodeEntry(model, field))
-        .join(', ');
+    final entries = JsonWriter.encodeEntries(model);
     final arguments = model.fields.indexed
         .map((entry) => JsonWriter.decodeArgument(entry.$2, entry.$1))
         .join(', ');
@@ -64,11 +81,7 @@ mixin ${name}Charcoal {
 
   ${EqualityWriter.members(model)}
 
-  @override
-  String toString() {
-    final \$it = this as $name;
-    return '${_toStringOf(model)}';
-  }
+  ${_toString(model)}
 
   static bool \$equals($name \$a, $name \$b) {
     ${EqualityWriter.equals(model)}

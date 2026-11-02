@@ -50,6 +50,24 @@ final class CharcoalJsonReader(this._source) {
     return key;
   }
 
+  /// Finds a string field of the object ahead, leaving the reader where it was.
+  ///
+  /// It is the first field in what charcoal writes, so nothing else gets read.
+  String peekStringField(String key) {
+    final start = _index;
+    if (enterObject()) {
+      do {
+        if (readKey() == key) {
+          final value = readString();
+          _index = start;
+          return value;
+        }
+        skipValue();
+      } while (nextInObject());
+    }
+    _fail();
+  }
+
   /// Moves past a comma, or the end of the object, returning if it continues.
   bool nextInObject() => _next(_closeBrace);
 

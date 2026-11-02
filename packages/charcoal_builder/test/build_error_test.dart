@@ -131,7 +131,7 @@ void main() {
           Book(String title);
         }
         ''',
-        'Book.title must be a `this.title` parameter.',
+        'Book.title must be a `this.title` or `super.title` parameter.',
       );
     });
 
@@ -145,7 +145,7 @@ void main() {
           factory Book(String title) => Book.of(title);
         }
         ''',
-        'Book.title must be a `this.title` parameter.',
+        'Book.title must be a `this.title` or `super.title` parameter.',
       );
     });
 

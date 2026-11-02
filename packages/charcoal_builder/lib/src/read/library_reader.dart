@@ -29,15 +29,13 @@ final class LibraryReader(this._resolver, this._config) {
   /// Every adapter the library being read can see.
   List<_Adapter> _adapters = const [];
 
-  Future<List<ClassModel>> read(
+  Future<LibraryModel> read(
     LibraryElement library, {
     required String partFile,
   }) async {
-    final annotated = library.classes
-        .where((element) => _annotationOf(element) != null)
-        .toList();
-    if (annotated.isEmpty) {
-      return [];
+    final covered = library.classes.where(_isCovered).toList();
+    if (covered.isEmpty) {
+      return const LibraryModel();
     }
 
     if (!_hasPart(library, partFile)) {
@@ -45,7 +43,164 @@ final class LibraryReader(this._resolver, this._config) {
     }
 
     _adapters = _adaptersIn(library);
-    return [for (final element in annotated) await _readClass(element)];
+    return LibraryModel(
+      classes: [
+        for (final element in covered)
+          if (!element.isSealed) await _readClass(element),
+      ],
+      families: [
+        for (final element in covered)
+          if (element.isSealed) _readFamily(element),
+      ],
+    );
+  }
+
+  /// Annotated, or below a sealed class that is.
+  bool _isCovered(ClassElement element) {
+    return _annotationOf(element) != null ||
+        _supertypesOf(element).any((supertype) {
+          return supertype.isSealed && _annotationOf(supertype) != null;
+        });
+  }
+
+  Iterable<ClassElement> _supertypesOf(ClassElement element) {
+    return element.allSupertypes
+        .map((type) => type.element)
+        .whereType<ClassElement>();
+  }
+
+  Iterable<ClassElement> _superclassesOf(ClassElement element) sync* {
+    var type = element.supertype;
+    while (type != null && !type.isDartCoreObject) {
+      final superclass = type.element;
+      if (superclass is ClassElement) {
+        yield superclass;
+      }
+      type = superclass.supertype;
+    }
+  }
+
+  /// The covered sealed classes at the top of whatever it is under.
+  Iterable<ClassElement> _rootsOf(ClassElement element) {
+    bool isCoveredSealed(ClassElement other) {
+      return other.isSealed && _isCovered(other);
+    }
+
+    return [
+      if (element.isSealed) element,
+      ..._supertypesOf(element).where(isCoveredSealed),
+    ].where((candidate) => !_supertypesOf(candidate).any(isCoveredSealed));
+  }
+
+  String _discriminatorOf(ClassElement element) {
+    final keys = _rootsOf(element).map(_ownDiscriminatorOf).toSet();
+    if (keys.length > 1) {
+      _addError(
+        '${element.name} is under sealed classes with different discriminators:'
+        ' ${keys.join(', ')}.',
+      );
+    }
+    return keys.firstOrNull ?? _config.discriminator;
+  }
+
+  String _ownDiscriminatorOf(ClassElement root) {
+    return _stringOption(root, 'discriminator') ?? _config.discriminator;
+  }
+
+  String? _stringOption(ClassElement element, String option) {
+    return _annotationOf(element)?.getField(option)?.toStringValue();
+  }
+
+  FamilyModel _readFamily(ClassElement element) {
+    final name = element.name!;
+    if (element.isPrivate) {
+      errors.add('$name is private, so it cannot be annotated.');
+    }
+    if (element.typeParameters.isNotEmpty) {
+      errors.add('$name is generic, which is not supported yet.');
+    }
+    if (_stringOption(element, 'tag') != null) {
+      errors.add('$name sets a tag, which only a class it covers can.');
+    }
+    final isRoot = _rootsOf(element).contains(element);
+    if (!isRoot && _stringOption(element, 'discriminator') != null) {
+      errors.add('$name sets a discriminator, which only a sealed root can.');
+    }
+    _checkSuperclass(element);
+
+    final leaves = [
+      for (final other in element.library.classes)
+        if (!other.isAbstract &&
+            !other.isSealed &&
+            _supertypesOf(other).contains(element))
+          LeafModel(
+            name: other.name!,
+            tag: _stringOption(other, 'tag') ?? other.name!,
+            isImmutable: _isImmutable(other),
+          ),
+    ];
+    if (leaves.isEmpty) {
+      errors.add('$name is sealed, but has no classes to decode.');
+    }
+    final tags = <String>{};
+    for (final leaf in leaves) {
+      if (!tags.add(leaf.tag)) {
+        errors.add('$name has two classes with the tag ${leaf.tag}.');
+      }
+    }
+
+    return FamilyModel(
+      name: name,
+      discriminator: _discriminatorOf(element),
+      isImmutable: _isImmutable(element),
+      leaves: leaves,
+    );
+  }
+
+  void _checkSuperclass(ClassElement element) {
+    final superclass = element.supertype?.element;
+    final isAllowed =
+        element.supertype?.isDartCoreObject != false ||
+        (superclass is ClassElement &&
+            superclass.isSealed &&
+            _isCovered(superclass));
+    if (!isAllowed) {
+      errors.add(
+        '${element.name} extends a class that no sealed @Charcoal class '
+        'covers, so its fields could not be read.',
+      );
+    }
+  }
+
+  void _checkOptions(ClassElement element, List<FieldModel> fields) {
+    final name = element.name!;
+    if (_stringOption(element, 'discriminator') != null) {
+      errors.add('$name sets a discriminator, which only a sealed root can.');
+    }
+    if (_rootsOf(element).isEmpty) {
+      if (_stringOption(element, 'tag') != null) {
+        errors.add('$name sets a tag, but no sealed class covers it.');
+      }
+      return;
+    }
+    final discriminator = _discriminatorOf(element);
+    if (fields.any((field) => field.name == discriminator)) {
+      errors.add('$name.$discriminator is named as the discriminator.');
+    }
+  }
+
+  /// What a superclass defines, leaving out what a subclass still must.
+  Set<String> _inheritedOf(ClassElement element) {
+    return {
+      for (final member in const ['==', 'toString', 'copy', 'copyWith'])
+        if (_superclassesOf(element).any((other) => _defines(other, member)))
+          member,
+    };
+  }
+
+  bool _defines(ClassElement element, String member) {
+    return element.getMethod(member)?.isAbstract == false ||
+        element.getGetter(member)?.isAbstract == false;
   }
 
   DartObject? _annotationOf(ClassElement element) {
@@ -60,8 +215,18 @@ final class LibraryReader(this._resolver, this._config) {
   }
 
   Omit _omitOf(ClassElement element) {
-    final name = _annotationOf(element)?.getField('omit')?.variable?.name;
-    return name == null ? _config.omit : Omit.values.byName(name);
+    final candidates = [
+      element,
+      ..._superclassesOf(element),
+      ..._supertypesOf(element),
+    ];
+    for (final candidate in candidates) {
+      final name = _annotationOf(candidate)?.getField('omit')?.variable?.name;
+      if (name != null) {
+        return Omit.values.byName(name);
+      }
+    }
+    return _config.omit;
   }
 
   bool _hasPart(LibraryElement library, String partFile) {
@@ -78,14 +243,17 @@ final class LibraryReader(this._resolver, this._config) {
     if (element.isPrivate) {
       errors.add('$name is private, so it cannot be annotated.');
     }
-    if (element.isAbstract || element.isSealed) {
-      errors.add('$name is abstract, which is not supported yet.');
+    if (element.isAbstract) {
+      errors.add('$name is abstract but not sealed, so it cannot be decoded.');
     }
     if (element.typeParameters.isNotEmpty) {
       errors.add('$name is generic, which is not supported yet.');
     }
-    if (element.supertype?.isDartCoreObject == false) {
-      errors.add('$name extends a class, which is not supported yet.');
+    _checkSuperclass(element);
+    if (element.library.classes.any((other) {
+      return other.supertype?.element == element;
+    })) {
+      errors.add('$name has subclasses, so it must be sealed.');
     }
     if (!await _hasMixin(element)) {
       errors.add('$name must declare `with ${name}Charcoal`.');
@@ -108,6 +276,7 @@ final class LibraryReader(this._resolver, this._config) {
     final fields = await _readFields(element, constructor);
     _checkOtherFields(element, fields);
     _checkEquality(element, fields);
+    _checkOptions(element, fields);
 
     return ClassModel(
       name: name,
@@ -117,6 +286,13 @@ final class LibraryReader(this._resolver, this._config) {
       omit: _omitOf(element),
       fields: fields,
       isImmutable: _isImmutable(element),
+      familyTag: _rootsOf(element).isEmpty
+          ? null
+          : FamilyTag(
+              key: _discriminatorOf(element),
+              value: _stringOption(element, 'tag') ?? name,
+            ),
+      inherited: _inheritedOf(element),
     );
   }
 
@@ -127,10 +303,12 @@ final class LibraryReader(this._resolver, this._config) {
 
   void _checkEquality(ClassElement element, List<FieldModel> fields) {
     final name = element.name!;
-    final hasEquals = element.getMethod('==') != null;
-    final hasHashCode = element.getGetter('hashCode') != null;
-    if (hasEquals != hasHashCode) {
-      errors.add('$name must define both == and hashCode, or neither.');
+    for (final owner in [element, ..._superclassesOf(element)]) {
+      if (_defines(owner, '==') != _defines(owner, 'hashCode')) {
+        _addError(
+          '${owner.name} must define both == and hashCode, or neither.',
+        );
+      }
     }
 
     final isImmutable = _isImmutable(element);
@@ -226,8 +404,7 @@ final class LibraryReader(this._resolver, this._config) {
     }
 
     final adaptedElement = adapted.element;
-    if (adaptedElement is ClassElement &&
-        _annotationOf(adaptedElement) != null) {
+    if (adaptedElement is ClassElement && _isCovered(adaptedElement)) {
       _addError(
         '$label is for $adapted, which already is a @Charcoal class.',
       );
@@ -278,8 +455,11 @@ final class LibraryReader(this._resolver, this._config) {
     for (final parameter in constructor.formalParameters) {
       final parameterName = parameter.name!;
       final label = '${element.name}.$parameterName';
-      if (parameter is! FieldFormalParameterElement) {
-        errors.add('$label must be a `this.$parameterName` parameter.');
+      if (!_readsItsOwnField(parameter)) {
+        errors.add(
+          '$label must be a `this.$parameterName` or `super.$parameterName` '
+          'parameter.',
+        );
         continue;
       }
 
@@ -304,6 +484,16 @@ final class LibraryReader(this._resolver, this._config) {
       fields.add(field);
     }
     return fields;
+  }
+
+  /// Whether it ends up in a field of its own name, through any `super.x`.
+  bool _readsItsOwnField(FormalParameterElement parameter) {
+    FormalParameterElement? current = parameter;
+    while (current is SuperFormalParameterElement) {
+      current = current.superConstructorParameter;
+    }
+    return current is FieldFormalParameterElement &&
+        current.name == parameter.name;
   }
 
   /// Whatever gets dropped has to decode back to exactly what it was.
@@ -339,9 +529,18 @@ final class LibraryReader(this._resolver, this._config) {
     final expression = node is FormalParameter
         ? node.defaultClause?.value
         : null;
-    return expression == null
-        ? parameter.defaultValueCode
-        : DefaultValueSource.of(expression, owner);
+    if (expression != null) {
+      return DefaultValueSource.of(expression, owner);
+    }
+    if (parameter case SuperFormalParameterElement(
+      :final superConstructorParameter?,
+    )) {
+      final superclass = owner.supertype?.element;
+      if (superclass is ClassElement) {
+        return await _defaultSourceOf(superConstructorParameter, superclass);
+      }
+    }
+    return parameter.defaultValueCode;
   }
 
   bool _isEmpty(DartObject value) {
@@ -356,14 +555,16 @@ final class LibraryReader(this._resolver, this._config) {
     final parameters = _wireConstructor(element)!.formalParameters
         .map((parameter) => parameter.name)
         .toSet();
-    for (final field in element.fields) {
-      final isSkipped =
-          field.isStatic || field.isLate || field.isOriginGetterSetter;
-      if (!isSkipped && !parameters.contains(field.name)) {
-        errors.add(
-          '${element.name}.${field.name} is not a constructor parameter, '
-          'so a round trip would lose it.',
-        );
+    for (final owner in [element, ..._superclassesOf(element)]) {
+      for (final field in owner.fields) {
+        final isSkipped =
+            field.isStatic || field.isLate || field.isOriginGetterSetter;
+        if (!isSkipped && !parameters.contains(field.name)) {
+          errors.add(
+            '${owner.name}.${field.name} is not a constructor parameter of '
+            '${element.name}, so a round trip would lose it.',
+          );
+        }
       }
     }
   }
@@ -528,9 +729,8 @@ final class LibraryReader(this._resolver, this._config) {
   FieldType? _classOf(DartType type, LibraryElement library) {
     final element = type.element;
     if (element is! ClassElement ||
-        _annotationOf(element) == null ||
-        element.isAbstract ||
-        element.isSealed ||
+        !_isCovered(element) ||
+        (element.isAbstract && !element.isSealed) ||
         element.typeParameters.isNotEmpty) {
       return null;
     }

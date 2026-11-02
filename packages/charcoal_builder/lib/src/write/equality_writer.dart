@@ -18,6 +18,9 @@ abstract final class EqualityWriter() {
   static String members(ClassModel model) {
     final name = model.name;
     if (model.isImmutable) {
+      if (model.inherited.contains('==')) {
+        return '';
+      }
       return '''
   @override
   bool operator ==(Object \$other) =>

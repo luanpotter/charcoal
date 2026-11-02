@@ -76,7 +76,14 @@ void main() {
 
     test('refuses an unknown config key', () {
       expect(
-        () => CharcoalConfig.fromMap({'discriminator': 'type'}),
+        () => CharcoalConfig.fromMap({'other': 'type'}),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('refuses a discriminator that is not a string', () {
+      expect(
+        () => CharcoalConfig.fromMap({'discriminator': 1}),
         throwsA(isA<ArgumentError>()),
       );
     });
