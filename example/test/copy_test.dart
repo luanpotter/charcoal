@@ -1,6 +1,3 @@
-// A null passed to copyWith clears a field, and leaving it out would not.
-// ignore_for_file: avoid_redundant_argument_values
-
 import 'dart:collection';
 
 import 'package:charcoal_example/author.dart';

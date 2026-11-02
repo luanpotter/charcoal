@@ -19,7 +19,7 @@ void main() {
           output: decodedMatches(
             allOf([
               contains('Book copy() => this as Book;'),
-              isNot(contains(r'$copy')),
+              isNot(contains(r'$copy(')),
               contains(r'Book(tags ?? _$it.tags)'),
             ]),
           ),
@@ -118,21 +118,19 @@ void main() {
       }
     ''';
 
-    test('types its interface exactly as the fields', () async {
+    test('is typed exactly as the fields', () async {
       final result = await build(
         book,
         outputs: {
           output: decodedMatches(
             allOf([
               contains(
-                'Book call({String title, String? notes, '
-                'Iterable<String> quotes});',
+                'Book Function({String title, String? notes, '
+                'Iterable<String> quotes}) get copyWith',
               ),
               contains(r'String? title, Object? notes = _$keep'),
               contains(r'title ?? _$it.title'),
-              contains(
-                r'identical(notes, _$keep) ? _$it.notes : notes as String?',
-              ),
+              contains(r'notes is _$Keep ? _$it.notes : notes as String?'),
             ]),
           ),
         },
@@ -187,7 +185,24 @@ void main() {
         @Charcoal()
         class Book() with BookCharcoal;
         ''',
-        outputs: {output: decodedMatches(contains('Book call();'))},
+        outputs: {
+          output: decodedMatches(contains('Book Function() get copyWith')),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('allows a field named as what it could have shadowed', () async {
+      final result = await build(
+        '''
+        $header
+        @Charcoal()
+        class Book(this.identical) with BookCharcoal {
+          final String? identical;
+        }
+        ''',
+        outputs: {output: anything},
       );
 
       expect(result.succeeded, isTrue);
