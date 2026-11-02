@@ -19,7 +19,7 @@ final class const ClassModel({
   required this.fields,
   this.isImmutable = false,
   this.familyTag,
-  this.inherited = const {},
+  this.handWritten = const {},
 }) {
   final String name;
 
@@ -34,8 +34,8 @@ final class const ClassModel({
   /// What it writes first, if it is in a sealed family.
   final FamilyTag? familyTag;
 
-  /// What a superclass defines, which a generated mixin would silently replace.
-  final Set<String> inherited;
+  /// What it or a superclass defines, which is not to be generated.
+  final Set<String> handWritten;
 }
 
 final class const FamilyTag({required this.key, required this.value}) {
