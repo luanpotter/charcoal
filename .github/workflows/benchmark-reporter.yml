@@ -1,0 +1,16 @@
+name: benchmark-reporter
+
+on:
+  workflow_run:
+    workflows: [benchmark-runner]
+    types: [completed]
+
+permissions:
+  actions: read
+  pull-requests: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: luanpotter/dart-benchmark-action@v0.2.0
