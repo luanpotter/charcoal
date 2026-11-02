@@ -2,8 +2,8 @@ sealed class const FieldType() {
   /// Whether `Omit.empty` can drop it: a number at zero or an empty collection.
   bool get canBeEmpty;
 
-  /// Whether its own `==` and `hashCode` compare it by value.
-  bool get usesEquals;
+  /// Whether its own `==` compares it by value, and a copy can share it.
+  bool get isValue;
 
   /// The name of a mutable class it holds, at any depth.
   String? get mutableClass;
@@ -36,7 +36,7 @@ final class const PrimitiveFieldType(this.primitive) extends FieldType {
   bool get canBeEmpty => isNumber;
 
   @override
-  bool get usesEquals => true;
+  bool get isValue => true;
 
   @override
   String? get mutableClass => null;
@@ -52,7 +52,7 @@ final class const EnumFieldType(this.name) extends FieldType {
   bool get canBeEmpty => false;
 
   @override
-  bool get usesEquals => true;
+  bool get isValue => true;
 
   @override
   String? get mutableClass => null;
@@ -72,7 +72,7 @@ final class const ClassFieldType(
   bool get canBeEmpty => false;
 
   @override
-  bool get usesEquals => isImmutable;
+  bool get isValue => isImmutable;
 
   @override
   String? get mutableClass => isImmutable ? null : name;
@@ -98,7 +98,7 @@ final class const ExtensionFieldType(
   bool get canBeEmpty => false;
 
   @override
-  bool get usesEquals => representation.usesEquals;
+  bool get isValue => representation.isValue;
 
   @override
   String? get mutableClass => representation.mutableClass;
@@ -123,7 +123,7 @@ final class const AdapterFieldType({
   bool get canBeEmpty => false;
 
   @override
-  bool get usesEquals => true;
+  bool get isValue => true;
 
   @override
   String? get mutableClass => null;
@@ -162,14 +162,14 @@ final class const IterableFieldType(
   bool get canBeEmpty => true;
 
   @override
-  bool get usesEquals => false;
+  bool get isValue => false;
 
   @override
   String? get mutableClass => element.mutableClass;
 
   @override
   bool get hasSetWithoutValues {
-    return (isSet && !element.usesEquals) || element.hasSetWithoutValues;
+    return (isSet && !element.isValue) || element.hasSetWithoutValues;
   }
 }
 
@@ -190,7 +190,7 @@ final class const MapFieldType(
   bool get canBeEmpty => true;
 
   @override
-  bool get usesEquals => false;
+  bool get isValue => false;
 
   @override
   String? get mutableClass => value.mutableClass;
@@ -206,7 +206,7 @@ final class const NullableFieldType(this.inner) extends FieldType {
   bool get canBeEmpty => false;
 
   @override
-  bool get usesEquals => inner.usesEquals;
+  bool get isValue => inner.isValue;
 
   @override
   String? get mutableClass => inner.mutableClass;
