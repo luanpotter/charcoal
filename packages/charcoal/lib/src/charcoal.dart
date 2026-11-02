@@ -27,7 +27,8 @@ enum Omit() {
   /// Drops null fields.
   nulls,
 
-  /// Also drops numbers at zero and empty collections, which must then default
-  /// to that, so that decoding brings them back. Strings and bools are kept.
+  /// Also drops numbers at zero, empty collections and classes using this too
+  /// whose `isEmpty` is true, which must then default to that, so that decoding
+  /// brings them back. Strings and bools are kept.
   empty,
 }

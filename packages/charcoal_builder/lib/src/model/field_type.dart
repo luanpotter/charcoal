@@ -1,5 +1,6 @@
 sealed class const FieldType() {
-  /// Whether `Omit.empty` can drop it: a number at zero or an empty collection.
+  /// Whether `Omit.empty` can drop it: a number at zero, an empty collection or
+  /// a class that says it is empty.
   bool get canBeEmpty;
 
   /// Whether its own `==` compares it by value, and a copy can share it.
@@ -66,6 +67,7 @@ final class const ClassFieldType(
   required this.owner,
   required this.isImmutable,
   required this.mutableClass,
+  required this.canBeEmpty,
 }) extends FieldType {
   /// How generated code declares it: `Book` or `Link<Genre>`.
   final String name;
@@ -78,7 +80,7 @@ final class const ClassFieldType(
   final String? mutableClass;
 
   @override
-  bool get canBeEmpty => false;
+  final bool canBeEmpty;
 
   @override
   bool get isValue => isImmutable;

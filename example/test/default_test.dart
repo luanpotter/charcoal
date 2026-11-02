@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:charcoal/charcoal.dart';
 import 'package:charcoal_example/author.dart';
+import 'package:charcoal_example/dimensions.dart';
 import 'package:charcoal_example/language.dart';
 import 'package:charcoal_example/translation.dart';
 import 'package:test/test.dart';
@@ -69,6 +70,35 @@ void main() {
       expect(_translation.toMap().containsKey('reviewers'), isFalse);
       expect(_translation.toJsonString(), isNot(contains('revision')));
       expect(_translation.toJsonString(), isNot(contains('reviewers')));
+    });
+
+    test('drops a class that is empty, bringing it back', () {
+      final decoded = [
+        TranslationCharcoal.fromJsonString(_translation.toJsonString()),
+        TranslationCharcoal.fromMap(_translation.toMap()),
+      ];
+
+      expect(const Dimensions().isEmpty, isTrue);
+      expect(_translation.toMap().containsKey('dimensions'), isFalse);
+      expect(_translation.toJsonString(), isNot(contains('dimensions')));
+      for (final translation in decoded) {
+        expect(translation.dimensions, const Dimensions());
+      }
+    });
+
+    test('keeps a class that is not', () {
+      const dimensions = Dimensions(widthCm: 13.5);
+      const other = Translation(
+        title: 'Duna',
+        translator: _translator,
+        dimensions: dimensions,
+      );
+
+      expect(dimensions.isEmpty, isFalse);
+      expect(other.toMap()['dimensions'], {'widthCm': 13.5});
+      expect(other.toJsonString(), contains('"dimensions":{"widthCm":13.5}'));
+      expect(other.toJsonString(), jsonEncode(other.toMap()));
+      expect(TranslationCharcoal.fromJsonString(other.toJsonString()), other);
     });
 
     test('keeps strings, even empty', () {

@@ -70,6 +70,8 @@ mixin ${model.owner}${model.typeParameters} {
 
   ${_toString(model)}
 
+  ${JsonWriter.isEmptyGetter(model)}
+
   ${_equalityStatics(model)}
 
   ${model.isGeneric ? '' : '${_entryJson(model)}\n${_directJson(model)}'}

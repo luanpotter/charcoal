@@ -66,9 +66,33 @@ abstract final class JsonWriter() {
   /// What `Omit.empty` checks on a type that [FieldType.canBeEmpty].
   static String _isNotEmpty(FieldModel field) {
     final value = '\$it.${field.name}';
-    return field.type is PrimitiveFieldType
-        ? '$value != 0'
-        : '$value.isNotEmpty';
+    return switch (field.type) {
+      PrimitiveFieldType() => '$value != 0',
+      ClassFieldType() => '!$value.isEmpty',
+      _ => '$value.isNotEmpty',
+    };
+  }
+
+  /// A getter telling if every field holds what would be dropped.
+  static String isEmptyGetter(ClassModel model) {
+    if (!model.generatesIsEmpty) {
+      return '';
+    }
+    final checks = model.fields.map((field) {
+      final value = '\$it.${field.name}';
+      return switch (field.type) {
+        NullableFieldType() => '$value == null',
+        PrimitiveFieldType() => '$value == 0',
+        _ => '$value.isEmpty',
+      };
+    });
+    final body = checks.isEmpty ? 'true' : checks.join(' && ');
+    return '''
+  bool get isEmpty {
+    final \$it = this as ${model.name};
+    return $body;
+  }
+''';
   }
 
   /// One constant per default, typed so that it means what it does in the
