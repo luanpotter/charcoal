@@ -512,7 +512,7 @@ void main() {
         }
         final class Ebook(super.published) extends Edition with EbookCharcoal;
         ''',
-        'Ebook.published must be a `this.published` or `super.published`',
+        'Ebook.published is passed on as year',
       );
     });
 

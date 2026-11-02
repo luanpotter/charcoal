@@ -113,13 +113,20 @@ final class const LeafModel({
 final class const FieldModel({
   required this.name,
   required this.type,
+  required this.parameterType,
   required this.isNamedParameter,
   this.defaultValue,
   this.isDefaultNull = false,
   this.isDefaultEmpty = false,
 }) {
   final String name;
+
+  /// The member's type, which everything but decoding follows.
   final FieldType type;
+
+  /// The constructor parameter's type, which decoding follows, as it can differ
+  /// from the member's: a `List<Tag>? tags` for a `tags ?? []`.
+  final FieldType parameterType;
   final bool isNamedParameter;
 
   /// The source of the parameter's default, if it has one.

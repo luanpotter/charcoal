@@ -23,7 +23,7 @@ final class BookDetails({
   required this.tags,
   required this.pageCountByChapter,
   required this.relatedBookIds,
-  this.subtitle = '',
+  String subtitle = '',
   this.quotes = const [],
   this.awardsByYear = const {},
   this.translations,
@@ -42,7 +42,6 @@ final class BookDetails({
   final SplayTreeSet<String> tags;
   final SplayTreeMap<String, int> pageCountByChapter;
   final List<Id<Book>> relatedBookIds;
-  final String subtitle;
   final Iterable<String> quotes;
   final Map<int, String> awardsByYear;
   final Map<Language, Translation>? translations;
@@ -53,4 +52,8 @@ final class BookDetails({
   final Ranked<Edition>? topEdition;
   final Lookup<int>? copiesSold;
   final Lookup<String>? seriesName;
+
+  String _subtitle = subtitle;
+  String get subtitle => _subtitle;
+  set subtitle(String value) => _subtitle = value.trim();
 }

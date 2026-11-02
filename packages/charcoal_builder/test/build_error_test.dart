@@ -133,21 +133,7 @@ void main() {
           Book(String title);
         }
         ''',
-        'Book.title must be a `this.title` or `super.title` parameter.',
-      );
-    });
-
-    test('an unnamed factory chosen over a named primary', () async {
-      await expectBuildError(
-        '''
-        $header
-        @Charcoal()
-        final class Book.of(this.title) with BookCharcoal {
-          final String title;
-          factory Book(String title) => Book.of(title);
-        }
-        ''',
-        'Book.title must be a `this.title` or `super.title` parameter.',
+        'Book.title has no field or getter of that name',
       );
     });
 

@@ -332,7 +332,7 @@ final class LibraryReader(this._resolver, this._config) {
     _typeParameters = const {};
     final fields = constructor == null
         ? const <FieldModel>[]
-        : await _readFields(element, constructor, label: field.name);
+        : await _readFields(element, constructor, type, label: field.name);
     for (final model in fields) {
       _checkSets('${field.name}.${model.name}', model);
     }
@@ -471,7 +471,12 @@ final class LibraryReader(this._resolver, this._config) {
     }
 
     _typeParameters = element.typeParameters.toSet();
-    final fields = await _readFields(element, constructor, label: name);
+    final fields = await _readFields(
+      element,
+      constructor,
+      element.thisType,
+      label: name,
+    );
     _typeParameters = const {};
     _checkOtherFields(element, fields);
     _checkEquality(element, fields);
@@ -650,25 +655,46 @@ final class LibraryReader(this._resolver, this._config) {
 
   Future<List<FieldModel>> _readFields(
     ClassElement element,
-    ConstructorElement constructor, {
+    ConstructorElement constructor,
+    InterfaceType self, {
     required String label,
   }) async {
     final fields = <FieldModel>[];
     for (final parameter in constructor.formalParameters) {
       final parameterName = parameter.name!;
       final fieldLabel = '$label.$parameterName';
-      if (!_readsItsOwnField(parameter)) {
+      final passedOnAs = _nameAtTheEndOf(parameter);
+      if (passedOnAs != parameterName) {
         errors.add(
-          '$fieldLabel must be a `this.$parameterName` or '
-          '`super.$parameterName` parameter.',
+          '$fieldLabel is passed on as $passedOnAs, so it has to be named the '
+          'same for its value to be read back.',
+        );
+        continue;
+      }
+      final memberType = _memberTypeOf(self, parameterName);
+      if (memberType == null) {
+        errors.add(
+          '$fieldLabel has no field or getter of that name, so a round trip '
+          'would lose it.',
+        );
+        continue;
+      }
+      if (!_library.typeSystem.isAssignableTo(memberType, parameter.type)) {
+        errors.add(
+          '$fieldLabel is a ${parameter.type}, but reading it back gives a '
+          '$memberType, which a copy could not pass to the constructor.',
         );
         continue;
       }
 
-      final type = _fieldTypeOf(parameter.type, _library);
-      if (type == null) {
+      final type = _fieldTypeOf(memberType, _library);
+      final parameterType = memberType == parameter.type
+          ? type
+          : _fieldTypeOf(parameter.type, _library);
+      if (type == null || parameterType == null) {
+        final unsupported = type == null ? memberType : parameter.type;
         errors.add(
-          '$fieldLabel is a ${parameter.type}, which charcoal cannot serialize.'
+          '$fieldLabel is a $unsupported, which charcoal cannot serialize.'
           ' If it has a CharcoalAdapter, this library needs to import it.',
         );
         continue;
@@ -677,6 +703,7 @@ final class LibraryReader(this._resolver, this._config) {
       final field = FieldModel(
         name: parameterName,
         type: type,
+        parameterType: parameterType,
         isNamedParameter: parameter.isNamed,
         defaultValue: await _defaultSourceOf(parameter, element),
         isDefaultNull: defaultValue?.isNull ?? false,
@@ -688,17 +715,30 @@ final class LibraryReader(this._resolver, this._config) {
     return fields;
   }
 
-  /// Whether it ends up in a field of its own name, through any `super.x`.
-  bool _readsItsOwnField(FormalParameterElement parameter) {
+  /// What it is called where it ends up, through any `super.x`.
+  String? _nameAtTheEndOf(FormalParameterElement parameter) {
     FormalParameterElement? current = parameter;
     while (current is SuperFormalParameterElement) {
       current = current.superConstructorParameter;
     }
-    return current is FieldFormalParameterElement &&
-        current.name == parameter.name;
+    return current?.name;
+  }
+
+  /// The type of the field or getter it reads, wherever that is declared.
+  DartType? _memberTypeOf(InterfaceType self, String name) {
+    for (final type in [self, ...self.allSupertypes]) {
+      final getter = type.getGetter(name);
+      if (getter != null) {
+        return getter.returnType;
+      }
+    }
+    return null;
   }
 
   /// Whatever gets dropped has to decode back to exactly what it was.
+  ///
+  /// A `T?` parameter of a `T` member gets its value from an initializer, which
+  /// cannot be read, so only a round trip can tell if it comes back.
   void _checkOmit(String label, FieldModel field, Omit omit) {
     final type = field.type;
     final hasNonNullDefault =
@@ -709,7 +749,12 @@ final class LibraryReader(this._resolver, this._config) {
         'could not come back: use Omit.none or remove the default.',
       );
     }
-    if (omit == Omit.empty && type.canBeEmpty && !field.isDefaultEmpty) {
+    final isMadeInInitializer =
+        field.parameterType is NullableFieldType && type is! NullableFieldType;
+    if (omit == Omit.empty &&
+        type.canBeEmpty &&
+        !field.isDefaultEmpty &&
+        !isMadeInInitializer) {
       errors.add(
         '$label can be dropped by Omit.empty, so a missing key has to decode '
         'to it: give it a default of zero or empty.',
@@ -773,7 +818,13 @@ final class LibraryReader(this._resolver, this._config) {
     for (final field in owner.fields) {
       final isSkipped =
           field.isStatic || field.isLate || field.isOriginGetterSetter;
-      if (!isSkipped && !parameters.contains(field.name)) {
+      final name = field.name;
+      final isBackingGetter =
+          name != null &&
+          name.startsWith('_') &&
+          parameters.contains(name.substring(1)) &&
+          owner.getGetter(name.substring(1)) != null;
+      if (!isSkipped && !isBackingGetter && !parameters.contains(name)) {
         errors.add(
           '${owner.name}.${field.name} is not a constructor parameter of '
           '${element.name}, so a round trip would lose it.',
