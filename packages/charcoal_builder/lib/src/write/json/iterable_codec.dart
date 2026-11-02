@@ -11,9 +11,17 @@ final class IterableCodec(this._type) extends FieldCodec {
   bool get _isList => _type.kind == IterableKind.list;
   bool get _isSet => _type.kind == IterableKind.set;
 
+  String get _coreName {
+    return switch (_type.kind) {
+      IterableKind.list => 'List',
+      IterableKind.set => 'Set',
+      IterableKind.other => 'Iterable',
+    };
+  }
+
   @override
   String get typeName {
-    final name = _type.ofClass ?? (_isSet ? 'Set' : 'List');
+    final name = _type.ofClass ?? _coreName;
     return '$name<${_element.typeName}>';
   }
 

@@ -88,8 +88,8 @@ abstract final class EqualityWriter() {
         } else {
           out.writeln('if (!${name}Charcoal.\$equals($a, $b)) return false;');
         }
-      case ExtensionFieldType(:final usesEquals, :final representation):
-        if (usesEquals) {
+      case ExtensionFieldType(:final isValue, :final representation):
+        if (isValue) {
           _compareEquals(out, a, b);
         } else {
           final cast = FieldCodec.of(representation).typeName;
@@ -101,8 +101,8 @@ abstract final class EqualityWriter() {
             depth,
           );
         }
-      case NullableFieldType(:final usesEquals, :final inner):
-        if (usesEquals) {
+      case NullableFieldType(:final isValue, :final inner):
+        if (isValue) {
           _compareEquals(out, a, b);
         } else {
           _compareNullable(out, inner, a, b, depth);
@@ -218,15 +218,15 @@ abstract final class EqualityWriter() {
           target,
           isImmutable ? '$value.hashCode' : '${name}Charcoal.\$hash($value)',
         );
-      case ExtensionFieldType(:final usesEquals, :final representation):
-        if (usesEquals) {
+      case ExtensionFieldType(:final isValue, :final representation):
+        if (isValue) {
           _mixValue(out, target, '$value.hashCode');
         } else {
           final cast = FieldCodec.of(representation).typeName;
           _mix(out, representation, '($value as $cast)', target, depth);
         }
-      case NullableFieldType(:final usesEquals, :final inner):
-        if (usesEquals) {
+      case NullableFieldType(:final isValue, :final inner):
+        if (isValue) {
           _mixValue(out, target, '$value.hashCode');
         } else {
           final present = '\$v$depth';

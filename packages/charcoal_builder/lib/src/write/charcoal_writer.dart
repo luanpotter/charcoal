@@ -1,4 +1,5 @@
 import 'package:charcoal_builder/src/model/class_model.dart';
+import 'package:charcoal_builder/src/write/copy_writer.dart';
 import 'package:charcoal_builder/src/write/equality_writer.dart';
 import 'package:charcoal_builder/src/write/json_writer.dart';
 import 'package:dart_style/dart_style.dart';
@@ -15,10 +16,16 @@ abstract final class CharcoalWriter() {
       ..writeln('// GENERATED CODE - DO NOT MODIFY BY HAND')
       ..writeln()
       ..writeln("part of '$partOf';");
+    if (CopyWriter.needsSentinel(classes)) {
+      buffer
+        ..writeln()
+        ..writeln(CopyWriter.sentinel);
+    }
     for (final model in classes) {
       buffer
         ..writeln()
-        ..writeln(_mixin(model));
+        ..writeln(_mixin(model))
+        ..writeln(CopyWriter.declarations(model));
     }
 
     return DartFormatter(
@@ -53,6 +60,8 @@ mixin ${name}Charcoal {
   void writeJson(StringBuffer \$sink) => \$write(this as $name, \$sink);
 
   String toJsonString() => encodeJsonString(this as $name);
+
+  ${CopyWriter.members(model)}
 
   ${EqualityWriter.members(model)}
 
