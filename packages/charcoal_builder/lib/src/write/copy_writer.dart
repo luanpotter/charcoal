@@ -21,13 +21,17 @@ final class const _\$Keep();
 
   static String members(ClassModel model) {
     final name = model.name;
+    final isCopyInherited = model.inherited.contains('copy');
     final copy = model.isImmutable
-        ? '$name copy() => this as $name;'
+        ? (isCopyInherited ? '' : '$name copy() => this as $name;')
         : '''
-$name copy() => \$copy(this as $name);
+${isCopyInherited ? '' : '$name copy() => \$copy(this as $name);'}
 
 static $name \$copy($name \$it) => ${_construct(model, (field) => _copyOf(field.type, '\$it.${field.name}', 0))};
 ''';
+    if (model.inherited.contains('copyWith')) {
+      return copy;
+    }
     // Telling `x: null` from leaving `x` out takes a sentinel default, and so a
     // wider parameter type. The getter gives callers the exact field types.
     return '''

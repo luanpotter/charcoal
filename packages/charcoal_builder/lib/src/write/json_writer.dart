@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:charcoal/charcoal.dart';
 import 'package:charcoal_builder/src/model/class_model.dart';
 import 'package:charcoal_builder/src/model/field_type.dart';
@@ -6,7 +8,29 @@ import 'package:charcoal_builder/src/write/json/statements.dart';
 
 /// Writes the JSON code of a class, leaving each field to its [FieldCodec].
 abstract final class JsonWriter() {
-  static String encodeEntry(ClassModel model, FieldModel field) {
+  /// A Dart literal for any string, as JSON escapes are valid in Dart too.
+  static String stringLiteral(String value) {
+    final json = jsonEncode(value);
+    final content = json.substring(1, json.length - 1);
+    return "'${content.replaceAll("'", r"\'").replaceAll(r'$', r'\$')}'";
+  }
+
+  /// The text JSON holds for a string, ready to go inside a Dart literal.
+  static String _jsonText(String value) {
+    return jsonEncode(
+      value,
+    ).replaceAll(r'\', r'\\').replaceAll("'", r"\'").replaceAll(r'$', r'\$');
+  }
+
+  static String encodeEntries(ClassModel model) {
+    return [
+      if (model.familyTag case final tag?)
+        '${stringLiteral(tag.key)}: ${stringLiteral(tag.value)}',
+      for (final field in model.fields) _encodeEntry(model, field),
+    ].join(', ');
+  }
+
+  static String _encodeEntry(ClassModel model, FieldModel field) {
     final key = _mapKeyOf(field);
     final value = FieldCodec.of(field.type).encode('\$it.${field.name}', 0);
     if (!_isDroppable(model, field)) {
@@ -130,6 +154,18 @@ abstract final class JsonWriter() {
   static String write(ClassModel model) {
     final out = Statements()..literal('{');
     final fields = model.fields;
+    if (model.familyTag case final tag?) {
+      out.literal('${_jsonText(tag.key)}:${_jsonText(tag.value)}');
+      for (final field in fields) {
+        if (_isDroppable(model, field)) {
+          _writeDroppable(out, field, before: ',');
+        } else {
+          _writeCertain(out, field, before: ',');
+        }
+      }
+      return (out..literal('}')).finish();
+    }
+
     final certain = fields.indexWhere((field) => !_isDroppable(model, field));
 
     if (certain == -1) {

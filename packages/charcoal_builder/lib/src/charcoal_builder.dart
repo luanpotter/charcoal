@@ -24,7 +24,7 @@ class CharcoalBuilder({
 
     final output = input.changeExtension(_extension);
     final reader = LibraryReader(buildStep.resolver, config);
-    final classes = await reader.read(
+    final model = await reader.read(
       await buildStep.inputLibrary,
       partFile: output.pathSegments.last,
     );
@@ -33,13 +33,13 @@ class CharcoalBuilder({
       reader.errors.forEach(log.severe);
       return;
     }
-    if (classes.isEmpty) {
+    if (model.isEmpty) {
       return;
     }
 
     await buildStep.writeAsString(
       output,
-      CharcoalWriter.write(partOf: input.pathSegments.last, classes: classes),
+      CharcoalWriter.write(partOf: input.pathSegments.last, model: model),
     );
   }
 }
