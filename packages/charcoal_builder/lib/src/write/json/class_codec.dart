@@ -11,21 +11,21 @@ final class ClassCodec(this._type) extends FieldCodec {
 
   @override
   String convert(String value, int depth) {
-    return '${typeName}Charcoal.\$encode($value)';
+    return '${_type.owner}.\$encode($value)';
   }
 
   @override
   String decode(String value, int depth) {
-    return '${typeName}Charcoal.\$decode($value as Map<String, Object?>)';
+    return '${_type.owner}.\$decode($value as Map<String, Object?>)';
   }
 
   @override
   void read(StringBuffer out, String target, int depth) {
-    out.writeln('$target = ${typeName}Charcoal.\$read(\$r);');
+    out.writeln('$target = ${_type.owner}.\$read(\$r);');
   }
 
   @override
   void write(Statements out, String value, int depth) {
-    out.code('${typeName}Charcoal.\$write($value, \$sink);');
+    out.code('${_type.owner}.\$write($value, \$sink);');
   }
 }

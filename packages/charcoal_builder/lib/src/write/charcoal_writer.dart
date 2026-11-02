@@ -17,20 +17,17 @@ abstract final class CharcoalWriter() {
       ..writeln('// GENERATED CODE - DO NOT MODIFY BY HAND')
       ..writeln()
       ..writeln("part of '$partOf';");
-    if (CopyWriter.needsSentinel(model.classes)) {
+    final declarations = [
+      if (CopyWriter.needsSentinel(model.classes)) CopyWriter.sentinel,
+      ...model.classes.map(_mixin),
+      ...model.families.map(FamilyWriter.write),
+      ...model.instantiatedClasses.map(_instantiated),
+      ...model.instantiatedFamilies.map(FamilyWriter.writeInstantiated),
+    ];
+    for (final declaration in declarations) {
       buffer
         ..writeln()
-        ..writeln(CopyWriter.sentinel);
-    }
-    for (final classModel in model.classes) {
-      buffer
-        ..writeln()
-        ..writeln(_mixin(classModel));
-    }
-    for (final family in model.families) {
-      buffer
-        ..writeln()
-        ..writeln(FamilyWriter.write(family));
+        ..writeln(declaration);
     }
 
     return DartFormatter(
@@ -59,23 +56,13 @@ abstract final class CharcoalWriter() {
           return '$label: \${\$it.${field.name}}';
         })
         .join(', ');
-    return '${model.name}($fields)';
+    return '${model.baseName}($fields)';
   }
 
   static String _mixin(ClassModel model) {
-    final name = model.name;
-    final entries = JsonWriter.encodeEntries(model);
-    final arguments = model.fields.indexed
-        .map((entry) => JsonWriter.decodeArgument(entry.$2, entry.$1))
-        .join(', ');
-
     return '''
-mixin ${name}Charcoal {
-  Map<String, Object?> toMap() => \$encode(this as $name);
-
-  void writeJson(StringBuffer \$sink) => \$write(this as $name, \$sink);
-
-  String toJsonString() => encodeJsonString(this as $name);
+mixin ${model.owner}${model.typeParameters} {
+  ${model.isGeneric ? '' : _instanceJson(model)}
 
   ${CopyWriter.members(model)}
 
@@ -83,20 +70,55 @@ mixin ${name}Charcoal {
 
   ${_toString(model)}
 
-  static bool \$equals($name \$a, $name \$b) {
+  ${_equalityStatics(model)}
+
+  ${model.isGeneric ? '' : '${_entryJson(model)}\n${_directJson(model)}'}
+}
+''';
+  }
+
+  /// What one use of a generic class needs, with its type arguments known.
+  static String _instantiated(ClassModel model) {
+    return '''
+abstract final class ${model.owner} {
+  ${CopyWriter.copyStatic(model)}
+
+  ${_equalityStatics(model)}
+
+  ${_directJson(model)}
+}
+''';
+  }
+
+  static String _instanceJson(ClassModel model) {
+    final name = model.name;
+    return '''
+  Map<String, Object?> toMap() => \$encode(this as $name);
+
+  void writeJson(StringBuffer \$sink) => \$write(this as $name, \$sink);
+
+  String toJsonString() => encodeJsonString(this as $name);
+''';
+  }
+
+  static String _equalityStatics(ClassModel model) {
+    final name = model.name;
+    final parameters = model.typeParameters;
+    return '''
+  static bool \$equals$parameters($name \$a, $name \$b) {
     ${EqualityWriter.equals(model)}
   }
 
-  static int \$hash($name \$it) {
+  static int \$hash$parameters($name \$it) {
     ${EqualityWriter.hash(model)}
   }
-
-  static Map<String, Object?> \$encode($name \$it) => {$entries};
-
-  static void \$write($name \$it, StringBuffer \$sink) {
-    ${JsonWriter.write(model)}
+''';
   }
 
+  /// What the outside calls, wrapping any failure below it.
+  static String _entryJson(ClassModel model) {
+    final name = model.name;
+    return '''
   static String encodeJsonString($name \$it) {
     final \$sink = StringBuffer();
     \$write(\$it, \$sink);
@@ -121,6 +143,22 @@ mixin ${name}Charcoal {
       Error.throwWithStackTrace(CharcoalException('$name', \$error), \$stack);
     }
   }
+''';
+  }
+
+  /// What a holder calls for a nested value, adding no `try`.
+  static String _directJson(ClassModel model) {
+    final name = model.name;
+    final entries = JsonWriter.encodeEntries(model);
+    final arguments = model.fields.indexed
+        .map((entry) => JsonWriter.decodeArgument(entry.$2, entry.$1))
+        .join(', ');
+    return '''
+  static Map<String, Object?> \$encode($name \$it) => {$entries};
+
+  static void \$write($name \$it, StringBuffer \$sink) {
+    ${JsonWriter.write(model)}
+  }
 
   static const List<String> \$keys = [${JsonWriter.keys(model)}];
 
@@ -131,7 +169,6 @@ mixin ${name}Charcoal {
   }
 
   static $name \$decode(Map<String, Object?> \$json) => ${model.constructor}($arguments);
-}
 ''';
   }
 }

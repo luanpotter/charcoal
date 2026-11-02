@@ -16,7 +16,7 @@ final class const _\$Keep();
 ''';
 
   static bool needsSentinel(Iterable<ClassModel> classes) {
-    return classes.any((model) => model.fields.any(_isNullable));
+    return classes.any((model) => model.fields.any(_needsSentinel));
   }
 
   static String members(ClassModel model) {
@@ -39,25 +39,37 @@ $name _\$copyWith(${_parameters(model.fields, _privateParameter)}) {
 ''';
   }
 
-  /// What a holder calls goes through a hand-written `copy`, if there is one.
   static String _copy(ClassModel model) {
     final name = model.name;
-    final isHandWritten = model.handWritten.contains('copy');
-    if (model.isImmutable) {
-      return isHandWritten ? '' : '$name copy() => this as $name;';
+    if (model.handWritten.contains('copy')) {
+      return copyStatic(model);
     }
-    if (isHandWritten) {
-      return 'static $name \$copy($name \$it) => \$it.copy();';
+    if (model.isImmutable) {
+      return '$name copy() => this as $name;';
+    }
+    return '''
+$name copy() => \$copy(this as $name);
+
+${copyStatic(model)}
+''';
+  }
+
+  /// What a holder calls, going through a hand-written `copy` if there is one.
+  static String copyStatic(ClassModel model) {
+    if (model.isImmutable) {
+      return '';
+    }
+    final name = model.name;
+    final signature =
+        'static $name \$copy${model.typeParameters}($name \$it) =>';
+    if (model.handWritten.contains('copy')) {
+      return '$signature \$it.copy();';
     }
     final constructed = _construct(
       model,
       (field) => _copyOf(field.type, '\$it.${field.name}', 0),
     );
-    return '''
-$name copy() => \$copy(this as $name);
-
-static $name \$copy($name \$it) => $constructed;
-''';
+    return '$signature $constructed;';
   }
 
   static String _construct(
@@ -84,9 +96,9 @@ static $name \$copy($name \$it) => $constructed;
     return '${FieldCodec.of(field.type).typeName} ${field.name}';
   }
 
-  /// Only a nullable field needs a sentinel: in others, null means left out.
+  /// Only what can be null needs a sentinel: elsewhere, null means left out.
   static String _privateParameter(FieldModel field) {
-    return _isNullable(field)
+    return _needsSentinel(field)
         ? 'Object? ${field.name} = $_keep'
         : '${FieldCodec.of(field.type).typeName}? ${field.name}';
   }
@@ -95,22 +107,27 @@ static $name \$copy($name \$it) => $constructed;
     final name = field.name;
     final current = '$_source.$name';
     final kept = model.isImmutable ? current : _copyOf(field.type, current, 0);
-    return _isNullable(field)
+    return _needsSentinel(field)
         ? '$name is _\$Keep ? $kept : '
               '$name as ${FieldCodec.of(field.type).typeName}'
         : '$name ?? $kept';
   }
 
-  static bool _isNullable(FieldModel field) {
-    return field.type is NullableFieldType;
+  /// A type parameter counts, as it could turn out to be nullable.
+  static bool _needsSentinel(FieldModel field) {
+    return field.type is NullableFieldType ||
+        field.type is TypeParameterFieldType;
   }
 
   /// An expression building anew whatever a later write to [value] could reach.
   static String _copyOf(FieldType type, String value, int depth) {
     return switch (type) {
-      PrimitiveFieldType() || EnumFieldType() || AdapterFieldType() => value,
-      ClassFieldType(:final isImmutable, :final name) =>
-        isImmutable ? value : '${name}Charcoal.\$copy($value)',
+      PrimitiveFieldType() ||
+      EnumFieldType() ||
+      AdapterFieldType() ||
+      TypeParameterFieldType() => value,
+      ClassFieldType(:final isImmutable, :final owner) =>
+        isImmutable ? value : '$owner.\$copy($value)',
       final ExtensionFieldType type =>
         type.isValue ? value : _copyExtension(type, value, depth),
       final NullableFieldType type =>
