@@ -4,6 +4,7 @@ import 'package:charcoal_example/language.dart';
 
 part 'translation.charcoal.g.dart';
 
+@immutable
 @Charcoal(omit: Omit.empty)
 final class const Translation({
   required this.title,

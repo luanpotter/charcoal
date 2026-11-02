@@ -2,6 +2,7 @@ import 'package:charcoal/charcoal.dart';
 
 part 'publisher.charcoal.g.dart';
 
+@immutable
 @Charcoal(omit: Omit.none)
 final class const Publisher({
   required this.name,

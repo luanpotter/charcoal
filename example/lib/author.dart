@@ -2,6 +2,7 @@ import 'package:charcoal/charcoal.dart';
 
 part 'author.charcoal.g.dart';
 
+@immutable
 @Charcoal()
 final class const Author({
   required this.penName,

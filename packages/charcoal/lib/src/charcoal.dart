@@ -1,4 +1,7 @@
 /// Generates JSON, copy, equality, hash and `toString` for a data class.
+///
+/// A class marked `@immutable` gets `==` and `hashCode` by value. Any other
+/// keeps them by identity, and gets `contentEquals` and `contentHash` instead.
 final class const Charcoal({this.omit}) {
   /// Which fields JSON drops, defaulting to the `omit` option in `build.yaml`,
   /// or else to [Omit.nulls].
