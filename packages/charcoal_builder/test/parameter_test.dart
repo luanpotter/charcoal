@@ -21,7 +21,7 @@ void main() {
               isNot(contains(r"'tags': ?$it.tags")),
               contains(r'final $v => ['),
               contains(r'List<String>? $f0;'),
-              contains(r'Book(tags: $f0)'),
+              contains(r'Book(tags: $s.$f0)'),
               contains('Book Function({List<String> tags}) get copyWith'),
               contains('({List<String>? tags}) =>'),
             ]),

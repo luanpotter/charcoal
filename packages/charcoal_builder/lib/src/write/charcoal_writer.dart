@@ -76,6 +76,8 @@ mixin ${model.owner}${model.typeParameters} {
 
   ${model.isGeneric ? '' : '${_entryJson(model)}\n${_directJson(model)}'}
 }
+
+${model.isGeneric ? '' : JsonWriter.readFields(model)}
 ''';
   }
 
@@ -89,6 +91,8 @@ abstract final class ${model.owner} {
 
   ${_directJson(model)}
 }
+
+${JsonWriter.readFields(model)}
 ''';
   }
 
