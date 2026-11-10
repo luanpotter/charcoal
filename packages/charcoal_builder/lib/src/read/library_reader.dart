@@ -205,6 +205,7 @@ final class LibraryReader(this._resolver, this._config) {
           owner: '${other.name}Charcoal',
           tag: _tagOf(other),
           isImmutable: _isImmutable(other),
+          hasOwnEquality: _hasOwnEquality(other),
         ),
     ];
     for (final other in _leavesOf(element)) {
@@ -261,6 +262,7 @@ final class LibraryReader(this._resolver, this._config) {
           owner: leaf.owner,
           tag: _tagOf(other),
           isImmutable: leaf.isImmutable,
+          hasOwnEquality: leaf.hasOwnEquality,
         ),
       );
     }
@@ -404,6 +406,10 @@ final class LibraryReader(this._resolver, this._config) {
       ])
         if (owners.any((owner) => _defines(owner, member))) member,
     };
+  }
+
+  bool _hasOwnEquality(ClassElement element) {
+    return _handWrittenOf(element).contains('==');
   }
 
   bool _defines(ClassElement element, String member) {
@@ -1117,6 +1123,7 @@ final class LibraryReader(this._resolver, this._config) {
       name,
       owner: '${name}Charcoal',
       isImmutable: isImmutable,
+      hasOwnEquality: _hasOwnEquality(element),
       mutableClass: isImmutable ? null : name,
       canBeEmpty: _canClassBeEmpty(element),
     );
@@ -1141,6 +1148,7 @@ final class LibraryReader(this._resolver, this._config) {
               typeName,
               owner: '${name}Charcoal',
               isImmutable: isClassImmutable,
+              hasOwnEquality: _hasOwnEquality(element),
               mutableClass: isClassImmutable ? null : typeName,
               canBeEmpty: false,
             )
@@ -1171,6 +1179,7 @@ final class LibraryReader(this._resolver, this._config) {
       typeName,
       owner: '_\$$name${_instantiations.length}',
       isImmutable: isClassImmutable && held.every((e) => e.isValue),
+      hasOwnEquality: _hasOwnEquality(element),
       mutableClass: isClassImmutable
           ? held.map((e) => e.mutableClass).nonNulls.firstOrNull
           : typeName,

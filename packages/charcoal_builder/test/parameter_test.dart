@@ -23,7 +23,7 @@ void main() {
               contains(r'List<String>? $f0;'),
               contains(r'Book(tags: $f0)'),
               contains('Book Function({List<String> tags}) get copyWith'),
-              contains('List<String>? tags}) {'),
+              contains('({List<String>? tags}) =>'),
             ]),
           ),
         },

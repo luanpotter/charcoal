@@ -104,6 +104,7 @@ final class const LeafModel({
   required this.owner,
   required this.tag,
   required this.isImmutable,
+  required this.hasOwnEquality,
 }) {
   /// How a switch matches it: `Hardcover` or `Known<String>`.
   final String pattern;
@@ -112,6 +113,12 @@ final class const LeafModel({
   final String owner;
   final String tag;
   final bool isImmutable;
+
+  /// Whether it or a superclass writes `==` and `hashCode` by hand.
+  final bool hasOwnEquality;
+
+  /// As [ClassFieldType.isComparedByOperator].
+  bool get isComparedByOperator => isImmutable && hasOwnEquality;
 }
 
 final class const FieldModel({
