@@ -130,7 +130,7 @@ void main() {
         outputs: {
           output: decodedMatches(
             allOf([
-              contains(r'if ($a.author != $b.author) return false;'),
+              contains(r'AuthorCharcoal.$equals($a.author, $b.author)'),
               contains(r'DetailsCharcoal.$equals($a.details, $b.details)'),
               contains(r'if ($a.maybe case final $v0?) {'),
               contains(r'($a.shelf as List<Details>)'),
@@ -196,6 +196,40 @@ void main() {
         }
         ''',
         outputs: {output: decodedMatches(contains('mixin BookCharcoal'))},
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('are what a holder goes through', () async {
+      final result = await build(
+        '''
+        $header
+        @immutable
+        @Charcoal()
+        final class Author(this.id) with AuthorCharcoal {
+          final int id;
+
+          @override
+          bool operator ==(Object other) => other is Author && other.id == id;
+
+          @override
+          int get hashCode => id;
+        }
+        @immutable
+        @Charcoal()
+        final class Book(this.author) with BookCharcoal {
+          final Author author;
+        }
+        ''',
+        outputs: {
+          output: decodedMatches(
+            allOf([
+              contains(r'if ($a.author != $b.author) return false;'),
+              contains(r'CharcoalHash.mix($h, $it.author.hashCode)'),
+            ]),
+          ),
+        },
       );
 
       expect(result.succeeded, isTrue);

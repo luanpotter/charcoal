@@ -23,8 +23,7 @@ abstract final class EqualityWriter() {
       }
       return '''
   @override
-  bool operator ==(Object \$other) =>
-      identical(this, \$other) || \$other is $name && \$equals(this as $name, \$other);
+  bool operator ==(Object \$other) => \$other is $name && \$equals(this as $name, \$other);
 
   @override
   int get hashCode => \$hash(this as $name);
@@ -37,8 +36,10 @@ abstract final class EqualityWriter() {
 ''';
   }
 
+  /// Holders call it directly, so it checks identity itself, which pays off on
+  /// what copies share.
   static String equals(ClassModel model) {
-    final out = StringBuffer();
+    final out = StringBuffer()..writeln(r'if (identical($a, $b)) return true;');
     for (final cost in _Cost.values) {
       for (final field in model.fields) {
         if (_costOf(field.type) == cost) {
@@ -89,11 +90,11 @@ abstract final class EqualityWriter() {
           AdapterFieldType() ||
           TypeParameterFieldType():
         _compareEquals(out, a, b);
-      case ClassFieldType(:final isImmutable, :final owner):
-        if (isImmutable) {
+      case final ClassFieldType type:
+        if (type.isComparedByOperator) {
           _compareEquals(out, a, b);
         } else {
-          out.writeln('if (!$owner.\$equals($a, $b)) return false;');
+          out.writeln('if (!${type.owner}.\$equals($a, $b)) return false;');
         }
       case ExtensionFieldType(:final isValue, :final representation):
         if (isValue) {
@@ -221,11 +222,13 @@ abstract final class EqualityWriter() {
           AdapterFieldType() ||
           TypeParameterFieldType():
         _mixValue(out, target, '$value.hashCode');
-      case ClassFieldType(:final isImmutable, :final owner):
+      case final ClassFieldType type:
         _mixValue(
           out,
           target,
-          isImmutable ? '$value.hashCode' : '$owner.\$hash($value)',
+          type.isComparedByOperator
+              ? '$value.hashCode'
+              : '${type.owner}.\$hash($value)',
         );
       case ExtensionFieldType(:final isValue, :final representation):
         if (isValue) {

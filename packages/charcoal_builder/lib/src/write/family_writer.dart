@@ -37,7 +37,7 @@ abstract final class ${model.owner} {
     }
   }
 
-  ${model.isImmutable ? '' : _mutableStatics(model)}
+  ${_statics(model)}
 }
 
 extension ${name}CharcoalMembers on $name {
@@ -56,7 +56,9 @@ extension ${name}CharcoalMembers on $name {
   static String _generic(FamilyModel model) {
     final parameters = model.typeParameters;
     return '''
-${model.isImmutable ? '' : 'abstract final class ${model.owner} {\n${_mutableStatics(model)}\n}'}
+abstract final class ${model.owner} {
+  ${_statics(model)}
+}
 
 extension ${model.baseName}CharcoalMembers$parameters on ${model.name} {
   ${_members(model)}
@@ -70,7 +72,7 @@ extension ${model.baseName}CharcoalMembers$parameters on ${model.name} {
 abstract final class ${model.owner} {
   ${_directJson(model)}
 
-  ${model.isImmutable ? '' : _mutableStatics(model)}
+  ${_statics(model)}
 }
 ''';
   }
@@ -106,26 +108,41 @@ abstract final class ${model.owner} {
 ''';
   }
 
-  static String _mutableStatics(FamilyModel model) {
+  /// What a holder calls, where a dynamic call on the root would cost more.
+  static String _statics(FamilyModel model) {
     final name = model.name;
     final parameters = model.typeParameters;
-    // A leaf like `Estimated extends Lookup<int>` is only a `Lookup<T>` at run
-    // time, as far as the compiler can tell inside of the generic class.
-    final cast = model.isGeneric ? ' as $name' : '';
     final equals = _switch(model, on: r'$a', (leaf) {
+      if (leaf.isComparedByOperator) {
+        return r'$l == $b';
+      }
       return r'switch ($b) { '
           'final ${leaf.pattern} \$r => ${leaf.owner}.\$equals(\$l, \$r), '
           '_ => false, '
           '}';
     });
-    final hash = _switch(model, (leaf) => '${leaf.owner}.\$hash(\$l)');
+    final hash = _switch(model, (leaf) {
+      return leaf.isComparedByOperator
+          ? r'$l.hashCode'
+          : '${leaf.owner}.\$hash(\$l)';
+    });
+    final statics =
+        '''
+  static bool \$equals$parameters($name \$a, $name \$b) => $equals;
+
+  static int \$hash$parameters($name \$it) => $hash;
+''';
+    if (model.isImmutable) {
+      return statics;
+    }
+    // A leaf like `Estimated extends Lookup<int>` is only a `Lookup<T>` at run
+    // time, as far as the compiler can tell inside of the generic class.
+    final cast = model.isGeneric ? ' as $name' : '';
     final copy = _switch(model, (leaf) {
       return leaf.isImmutable ? '\$l$cast' : '${leaf.owner}.\$copy(\$l)$cast';
     });
     return '''
-  static bool \$equals$parameters($name \$a, $name \$b) => $equals;
-
-  static int \$hash$parameters($name \$it) => $hash;
+$statics
 
   static $name \$copy$parameters($name \$it) => $copy;
 ''';

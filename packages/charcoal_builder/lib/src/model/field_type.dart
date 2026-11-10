@@ -66,6 +66,7 @@ final class const ClassFieldType(
   this.name, {
   required this.owner,
   required this.isImmutable,
+  required this.hasOwnEquality,
   required this.mutableClass,
   required this.canBeEmpty,
 }) extends FieldType {
@@ -75,6 +76,13 @@ final class const ClassFieldType(
   /// What holds its generated code: `BookCharcoal` or `_$Link0`.
   final String owner;
   final bool isImmutable;
+
+  /// Whether it or a superclass writes `==` and `hashCode` by hand.
+  final bool hasOwnEquality;
+
+  /// Whether a holder has to go through `==` and `hashCode`, rather than call
+  /// the generated ones directly, which saves a dynamic call.
+  bool get isComparedByOperator => isImmutable && hasOwnEquality;
 
   @override
   final String? mutableClass;

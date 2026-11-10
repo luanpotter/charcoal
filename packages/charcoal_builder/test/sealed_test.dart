@@ -125,6 +125,9 @@ void main() {
             allOf([
               contains('Edition copy() => this;'),
               contains('bool operator =='),
+              contains(
+                r'final Hardcover $r => HardcoverCharcoal.$equals($l, $r)',
+              ),
               isNot(contains('contentEquals')),
             ]),
           ),
@@ -224,6 +227,7 @@ void main() {
               isNot(contains('operator ==')),
               isNot(contains('get hashCode')),
               isNot(contains('String toString')),
+              contains(r'final Hardcover $l => $l == $b'),
             ]),
           ),
         },

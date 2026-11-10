@@ -144,7 +144,7 @@ void main() {
         outputs: {
           output: decodedMatches(
             allOf([
-              contains(r'if ($a.byValue != $b.byValue) return false;'),
+              contains(r'Book($it.byValue, _$Ranked1.$copy($it.byList)'),
               contains(r'_$Ranked1.$equals($a.byList, $b.byList)'),
               contains(r'_$Ranked2.$equals($a.byAuthor, $b.byAuthor)'),
               contains(r'_$Ranked1.$copy($it.byList)'),

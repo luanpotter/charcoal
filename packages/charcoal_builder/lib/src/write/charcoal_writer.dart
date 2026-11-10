@@ -106,11 +106,14 @@ abstract final class ${model.owner} {
   static String _equalityStatics(ClassModel model) {
     final name = model.name;
     final parameters = model.typeParameters;
+    // Inlined, they save `==` and a family's switch a call per value.
     return '''
+  @pragma('vm:prefer-inline')
   static bool \$equals$parameters($name \$a, $name \$b) {
     ${EqualityWriter.equals(model)}
   }
 
+  @pragma('vm:prefer-inline')
   static int \$hash$parameters($name \$it) {
     ${EqualityWriter.hash(model)}
   }
