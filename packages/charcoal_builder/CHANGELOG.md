@@ -1,3 +1,18 @@
+## 0.0.6
+
+ - **PERF**: Perform small micro-optimizations; update benchmarks ([#46](https://github.com/luanpotter/charcoal/issues/46)). ([c6f4b18a](https://github.com/luanpotter/charcoal/commit/c6f4b18a7a03026c6355aaa1396d451ba141e9bb))
+ - **FIX**: All classes must be final or sealed ([#39](https://github.com/luanpotter/charcoal/issues/39)). ([c4e54f00](https://github.com/luanpotter/charcoal/commit/c4e54f00593a183496eff0b2e1401487eb6b2819))
+ - **FIX**: Fix copy getter to better handle nulls ([#37](https://github.com/luanpotter/charcoal/issues/37)). ([1b35ae11](https://github.com/luanpotter/charcoal/commit/1b35ae11c3f07977c06771fd361677acae3c4176))
+ - **FIX**: Fixes and cleanups ([#34](https://github.com/luanpotter/charcoal/issues/34)). ([349f27b4](https://github.com/luanpotter/charcoal/commit/349f27b47cc1158cedb5dc0e9ead0cf1f964330c))
+ - **FEAT**: Support adapted-to-String map keys ([#44](https://github.com/luanpotter/charcoal/issues/44)). ([43f12184](https://github.com/luanpotter/charcoal/commit/43f1218434ed9a78f4defc69366900e9fbe8b396))
+ - **FEAT**: Support empty fields and classes ([#43](https://github.com/luanpotter/charcoal/issues/43)). ([b5939a65](https://github.com/luanpotter/charcoal/commit/b5939a65ca8c0ec5678f28f8128db5a060e8e122))
+ - **FEAT**: Disambiguate fields and ctor params ([#42](https://github.com/luanpotter/charcoal/issues/42)). ([eb393e01](https://github.com/luanpotter/charcoal/commit/eb393e014c32d3a863983622354704280c247751))
+ - **FEAT**: Support generics ([#41](https://github.com/luanpotter/charcoal/issues/41)). ([a4012674](https://github.com/luanpotter/charcoal/commit/a4012674c596a18f22d7b9c575caf1c29016f996))
+ - **FEAT**: Allow hand-written copys to preclude generation ([#40](https://github.com/luanpotter/charcoal/issues/40)). ([b1713459](https://github.com/luanpotter/charcoal/commit/b1713459ccedb05830cc74ac74568af8cd364e96))
+ - **FEAT**: Support sealed chains ([#38](https://github.com/luanpotter/charcoal/issues/38)). ([875532ff](https://github.com/luanpotter/charcoal/commit/875532ffb6f8c95ae5301ed73ef61853c75b98f6))
+ - **FEAT**: Add copy and copyWith ([#36](https://github.com/luanpotter/charcoal/issues/36)). ([5972b164](https://github.com/luanpotter/charcoal/commit/5972b16481a94dd9d276908c07c90e1f33d47808))
+ - **FEAT**: Generate equals, hash code and toString ([#35](https://github.com/luanpotter/charcoal/issues/35)). ([83fea52a](https://github.com/luanpotter/charcoal/commit/83fea52acbfa4224e34d86982c55ab8e9c88e6e2))
+
 ## 0.0.5
 
  - **PERF**: Hand-roll ultra-fast json decode ([#21](https://github.com/luanpotter/charcoal/issues/21)). ([6675ed4b](https://github.com/luanpotter/charcoal/commit/6675ed4bb11e36f8f126d6e762573501ca6ab49d))
