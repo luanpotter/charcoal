@@ -1,3 +1,11 @@
+## 0.0.6
+
+ - **FIX**: All classes must be final or sealed ([#39](https://github.com/luanpotter/charcoal/issues/39)). ([c4e54f00](https://github.com/luanpotter/charcoal/commit/c4e54f00593a183496eff0b2e1401487eb6b2819))
+ - **FIX**: Fixes and cleanups ([#34](https://github.com/luanpotter/charcoal/issues/34)). ([349f27b4](https://github.com/luanpotter/charcoal/commit/349f27b47cc1158cedb5dc0e9ead0cf1f964330c))
+ - **FEAT**: Support empty fields and classes ([#43](https://github.com/luanpotter/charcoal/issues/43)). ([b5939a65](https://github.com/luanpotter/charcoal/commit/b5939a65ca8c0ec5678f28f8128db5a060e8e122))
+ - **FEAT**: Support sealed chains ([#38](https://github.com/luanpotter/charcoal/issues/38)). ([875532ff](https://github.com/luanpotter/charcoal/commit/875532ffb6f8c95ae5301ed73ef61853c75b98f6))
+ - **FEAT**: Generate equals, hash code and toString ([#35](https://github.com/luanpotter/charcoal/issues/35)). ([83fea52a](https://github.com/luanpotter/charcoal/commit/83fea52acbfa4224e34d86982c55ab8e9c88e6e2))
+
 ## 0.0.5
 
  - **PERF**: Hand-roll ultra-fast json decode ([#21](https://github.com/luanpotter/charcoal/issues/21)). ([6675ed4b](https://github.com/luanpotter/charcoal/commit/6675ed4bb11e36f8f126d6e762573501ca6ab49d))
