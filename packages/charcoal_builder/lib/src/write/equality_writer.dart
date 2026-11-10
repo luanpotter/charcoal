@@ -110,7 +110,7 @@ abstract final class EqualityWriter() {
           );
         }
       case NullableFieldType(:final isValue, :final inner):
-        if (isValue) {
+        if (isValue && !_isCalledDirectly(inner)) {
           _compareEquals(out, a, b);
         } else {
           _compareNullable(out, inner, a, b, depth);
@@ -120,6 +120,12 @@ abstract final class EqualityWriter() {
       case MapFieldType(:final value):
         _compareMap(out, value, a, b, depth);
     }
+  }
+
+  /// Whether its generated `$equals` and `$hash` are called rather than `==`
+  /// and `hashCode`, which a null around it should not change.
+  static bool _isCalledDirectly(FieldType type) {
+    return type is ClassFieldType && !type.isComparedByOperator;
   }
 
   static void _compareEquals(StringBuffer out, String a, String b) {
@@ -197,12 +203,15 @@ abstract final class EqualityWriter() {
   ) {
     final entry = '\$e$depth';
     final other = '\$o$depth';
-    final valueType = FieldCodec.of(value).typeName;
+    // A nullable value is what a lookup gives already.
+    final cast = value is NullableFieldType
+        ? ''
+        : ' as ${FieldCodec.of(value).typeName}';
     out
       ..writeln('if ($a.length != $b.length) return false;')
       ..writeln('for (final $entry in $a.entries) {')
       ..writeln('if (!$b.containsKey($entry.key)) return false;')
-      ..writeln('final $other = $b[$entry.key] as $valueType;');
+      ..writeln('final $other = $b[$entry.key]$cast;');
     _compare(out, value, '$entry.value', other, depth + 1);
     out.writeln('}');
   }
@@ -238,7 +247,7 @@ abstract final class EqualityWriter() {
           _mix(out, representation, '($value as $cast)', target, depth);
         }
       case NullableFieldType(:final isValue, :final inner):
-        if (isValue) {
+        if (isValue && !_isCalledDirectly(inner)) {
           _mixValue(out, target, '$value.hashCode');
         } else {
           final present = '\$v$depth';

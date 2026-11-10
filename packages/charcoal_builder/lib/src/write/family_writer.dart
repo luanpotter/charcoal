@@ -112,13 +112,14 @@ abstract final class ${model.owner} {
   static String _statics(FamilyModel model) {
     final name = model.name;
     final parameters = model.typeParameters;
+    final isOther = model.leaves.length > 1 ? '_ => false, ' : '';
     final equals = _switch(model, on: r'$a', (leaf) {
       if (leaf.isComparedByOperator) {
         return r'$l == $b';
       }
       return r'switch ($b) { '
           'final ${leaf.pattern} \$r => ${leaf.owner}.\$equals(\$l, \$r), '
-          '_ => false, '
+          '$isOther'
           '}';
     });
     final hash = _switch(model, (leaf) {

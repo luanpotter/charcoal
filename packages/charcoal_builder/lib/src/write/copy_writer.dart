@@ -28,13 +28,21 @@ final class const _\$Keep();
     // Telling `x: null` from leaving `x` out takes a sentinel default, and so a
     // wider parameter type. The getter gives callers the exact field types. It
     // returns a closure, as a tear-off of a method would be a second call.
+    final construct = _construct(model, (field) => _replaced(model, field));
+    if (model.fields.isEmpty) {
+      return '''
+$copy
+
+$name Function() get copyWith => () => $construct;
+''';
+    }
     return '''
 $copy
 
 $name Function(${_parameters(model.fields, _publicParameter)}) get copyWith {
   final $_source = this as $name;
   return (${_parameters(model.fields, _privateParameter)}) =>
-      ${_construct(model, (field) => _replaced(model, field))};
+      $construct;
 }
 ''';
   }
