@@ -31,36 +31,36 @@ Microseconds per run, the median of 5 rounds; best in each run (within 10% noise
 
 | Scenario           |  Charcoal | Hand-written | json_serializable | dart_mappable |   freezed |
 | :----------------- | --------: | -----------: | ----------------: | ------------: | --------: |
-| `flat.toJson`      |  **0.86** |         1.70 |              1.67 |          2.10 |      1.73 |
-| `flat.fromJson`    |  **0.76** |         1.21 |              1.20 |          1.66 |      1.20 |
-| `flat.toMap`       |  **0.22** |     **0.22** |              0.25 |          0.56 |      0.25 |
-| `flat.fromMap`     |  **0.07** |     **0.06** |          **0.07** |          0.33 |  **0.07** |
-| `book.toJson`      |  **4.17** |         6.18 |              6.40 |         11.72 |      6.55 |
-| `book.fromJson`    |  **3.35** |         5.01 |              5.03 |          8.74 |      5.09 |
-| `book.toMap`       |  **1.26** |     **1.22** |              1.43 |          6.65 |      1.48 |
-| `book.fromMap`     |  **1.57** |     **1.56** |          **1.72** |          3.65 |  **1.71** |
-| `catalog.toJson`   | **4,680** |        6,472 |             6,530 |        12,627 |     6,671 |
-| `catalog.fromJson` | **3,428** |        5,049 |             5,191 |         9,217 |     5,170 |
-| `catalog.toMap`    | **1,323** |    **1,243** |             1,528 |         7,647 |     1,593 |
-| `catalog.fromMap`  | **1,665** |    **1,645** |             1,812 |         3,906 | **1,798** |
+| `flat.toJson`      |  **0.86** |         1.72 |              1.71 |          2.14 |      1.73 |
+| `flat.fromJson`    |  **0.76** |         1.25 |              1.23 |          1.68 |      1.25 |
+| `flat.toMap`       |  **0.22** |     **0.23** |              0.26 |          0.57 |      0.26 |
+| `flat.fromMap`     |  **0.07** |     **0.07** |          **0.07** |          0.33 |  **0.07** |
+| `book.toJson`      |  **4.15** |         6.26 |              6.61 |         12.04 |      6.78 |
+| `book.fromJson`    |  **3.30** |         5.10 |              5.22 |          8.83 |      5.29 |
+| `book.toMap`       |  **1.28** |     **1.25** |              1.44 |          6.72 |      1.50 |
+| `book.fromMap`     |  **1.62** |     **1.58** |              1.80 |          3.71 |      1.86 |
+| `catalog.toJson`   | **4,841** |        7,357 |             6,941 |        13,511 |     8,317 |
+| `catalog.fromJson` | **3,448** |        6,167 |             5,534 |         9,454 |     6,657 |
+| `catalog.toMap`    | **1,375** |    **1,319** |             1,543 |         7,945 |     1,715 |
+| `catalog.fromMap`  | **1,783** |        2,121 |         **1,955** |         4,004 |     2,625 |
 
 
 ### Sealed families
 
 | Scenario            | Charcoal | Hand-written | json_serializable | dart_mappable |  freezed |
 | :------------------ | -------: | -----------: | ----------------: | ------------: | -------: |
-| `sealed2.toJson`    | **29.8** |         67.0 |              73.0 |          91.7 |     69.0 |
-| `sealed8.toJson`    | **30.1** |         67.3 |              74.1 |          98.5 |     69.3 |
-| `sealed44.toJson`   | **30.8** |         68.0 |              75.0 |         100.6 |     70.1 |
-| `sealed2.fromJson`  | **27.0** |         34.9 |              34.0 |          64.7 |     34.8 |
-| `sealed8.fromJson`  | **27.7** |         35.4 |              34.5 |          73.1 |     35.4 |
-| `sealed44.fromJson` | **34.0** |         39.3 |              39.1 |         110.5 |     39.9 |
-| `sealed2.toMap`     | **10.2** |     **10.2** |              17.2 |          37.5 |     11.9 |
-| `sealed8.toMap`     | **10.5** |     **10.8** |              19.1 |          43.4 |     12.6 |
-| `sealed44.toMap`    | **11.0** |     **11.1** |              19.1 |          44.8 |     12.5 |
-| `sealed2.fromMap`   |  **5.0** |      **4.8** |           **5.2** |          38.0 |      6.0 |
-| `sealed8.fromMap`   |  **5.5** |      **5.5** |           **5.8** |          45.6 |      6.7 |
-| `sealed44.fromMap`  |  **9.7** |      **9.3** |           **9.5** |          83.9 |     10.5 |
+| `sealed2.toJson`    | **30.1** |         68.2 |              73.5 |          93.0 |     71.9 |
+| `sealed8.toJson`    | **30.7** |         69.2 |              75.2 |          99.7 |     72.1 |
+| `sealed44.toJson`   | **31.7** |         69.5 |              75.5 |         103.0 |     72.9 |
+| `sealed2.fromJson`  | **26.5** |         35.2 |              34.3 |          65.8 |     36.1 |
+| `sealed8.fromJson`  | **27.3** |         35.7 |              34.6 |          74.3 |     36.8 |
+| `sealed44.fromJson` | **32.5** |         39.8 |              39.3 |         110.8 |     41.0 |
+| `sealed2.toMap`     |  **9.8** |     **10.4** |              17.3 |          38.5 |     12.4 |
+| `sealed8.toMap`     | **10.1** |     **10.9** |              19.1 |          44.1 |     13.0 |
+| `sealed44.toMap`    | **11.0** |     **11.2** |              19.3 |          45.5 |     13.1 |
+| `sealed2.fromMap`   |  **5.0** |      **4.9** |           **5.3** |          40.3 |      6.1 |
+| `sealed8.fromMap`   |  **5.5** |      **5.5** |           **5.8** |          48.7 |      6.8 |
+| `sealed44.fromMap`  |  **8.8** |      **9.3** |           **9.5** |          83.6 |     10.7 |
 
 
 ### Strings
@@ -69,10 +69,10 @@ Microseconds per run, the median of 5 rounds; best in each run (within 10% noise
 
 | Scenario           | Charcoal | Hand-written | json_serializable | dart_mappable |  freezed |
 | :----------------- | -------: | -----------: | ----------------: | ------------: | -------: |
-| `plain.toJson`     | **2.25** |     **2.41** |              2.73 |          2.92 | **2.46** |
-| `plain.fromJson`   |     2.11 |         2.11 |              2.12 |          2.01 | **1.79** |
-| `escaped.toJson`   | **17.8** |         28.0 |              27.8 |          28.8 |     28.3 |
-| `escaped.fromJson` |  **8.8** |         27.1 |              27.4 |          28.3 |     27.8 |
+| `plain.toJson`     | **2.30** |     **2.44** |              2.75 |          2.98 | **2.49** |
+| `plain.fromJson`   | **1.70** |         2.13 |              2.13 |          2.04 | **1.84** |
+| `escaped.toJson`   | **17.4** |         28.2 |              28.1 |          28.6 |     28.6 |
+| `escaped.fromJson` |  **9.4** |         27.1 |              27.6 |          28.4 |     28.0 |
 
 
 ### Equality and hash
@@ -81,22 +81,22 @@ Microseconds per run, the median of 5 rounds; best in each run (within 10% noise
 
 | Scenario                   |  Charcoal | Hand-written | dart_mappable | freezed |
 | :------------------------- | --------: | -----------: | ------------: | ------: |
-| `flat.equals`              | **0.015** |    **0.014** |         0.294 |   0.021 |
-| `flat.hashCode`            | **0.022** |        0.030 |         0.282 |   0.031 |
-| `book.equals`              |     0.164 |    **0.130** |         2.406 |   0.746 |
-| `book.equalsOtherFirst`    |     0.015 |    **0.011** |         0.130 |   0.016 |
-| `book.equalsOtherLast`     | **0.017** |        0.130 |         2.347 |   0.740 |
-| `book.hashCode`            | **0.186** |        0.237 |         2.597 |   0.400 |
-| `catalog.equals`           |       182 |      **140** |         2,511 |     796 |
-| `catalog.equalsOtherFirst` |     0.025 |    **0.019** |         0.806 |   0.070 |
-| `catalog.equalsOtherLast`  |       181 |      **140** |         2,474 |     797 |
-| `catalog.hashCode`         |   **208** |          249 |         2,724 |     469 |
-| `sealed2.equals`           |      0.73 |     **0.32** |         20.63 |    3.05 |
-| `sealed8.equals`           |  **0.90** |         1.05 |         25.51 |    3.94 |
-| `sealed44.equals`          |  **1.49** |     **1.37** |         26.32 |    3.64 |
-| `sealed2.hashCode`         |  **1.24** |     **1.28** |         16.16 |    3.29 |
-| `sealed8.hashCode`         |  **1.34** |     **1.28** |         19.53 |    4.35 |
-| `sealed44.hashCode`        |      1.87 |     **1.28** |         20.78 |    4.13 |
+| `flat.equals`              | **0.015** |    **0.014** |         0.304 |   0.021 |
+| `flat.hashCode`            | **0.022** |        0.030 |         0.289 |   0.032 |
+| `book.equals`              |     0.165 |    **0.132** |         2.389 |   0.753 |
+| `book.equalsOtherFirst`    |     0.015 |    **0.011** |         0.132 |   0.015 |
+| `book.equalsOtherLast`     | **0.017** |        0.131 |         2.442 |   0.752 |
+| `book.hashCode`            | **0.191** |        0.239 |         2.653 |   0.407 |
+| `catalog.equals`           |       185 |      **165** |         2,553 |     852 |
+| `catalog.equalsOtherFirst` | **0.017** |        0.019 |         0.818 |   0.070 |
+| `catalog.equalsOtherLast`  |       190 |      **154** |         2,548 |     862 |
+| `catalog.hashCode`         |   **213** |          270 |         2,824 |     511 |
+| `sealed2.equals`           |  **0.32** |     **0.32** |         21.62 |    2.96 |
+| `sealed8.equals`           |  **0.53** |         1.05 |         25.73 |    4.00 |
+| `sealed44.equals`          |  **1.09** |         1.37 |         26.57 |    3.67 |
+| `sealed2.hashCode`         |  **0.79** |         1.27 |         16.12 |    3.27 |
+| `sealed8.hashCode`         |  **0.88** |         1.27 |         19.43 |    4.40 |
+| `sealed44.hashCode`        |  **1.34** |     **1.28** |         21.04 |    4.14 |
 
 
 ### Copying
@@ -105,12 +105,12 @@ Microseconds per run, the median of 5 rounds; best in each run (within 10% noise
 
 | Scenario             |  Charcoal | Hand-written | dart_mappable |   freezed |
 | :------------------- | --------: | -----------: | ------------: | --------: |
-| `flat.copyWith`      | **0.019** |        0.021 |         0.134 | **0.020** |
-| `flat.copyWithValue` | **0.020** |    **0.021** |         0.188 |     0.024 |
-| `flat.copyWithNull`  | **0.020** |        0.023 |         0.185 |     0.028 |
-| `book.copyWith`      | **0.025** |    **0.027** |         0.266 | **0.026** |
-| `book.copyWithValue` | **0.025** |    **0.027** |         0.315 | **0.026** |
-| `book.copyWithNull`  | **0.024** |        0.029 |         0.310 | **0.026** |
+| `flat.copyWith`      | **0.019** |        0.021 |         0.133 | **0.021** |
+| `flat.copyWithValue` | **0.020** |    **0.021** |         0.187 | **0.020** |
+| `flat.copyWithNull`  | **0.019** |        0.023 |         0.182 | **0.020** |
+| `book.copyWith`      | **0.026** |    **0.028** |         0.267 | **0.026** |
+| `book.copyWithValue` | **0.025** |    **0.027** |         0.322 | **0.027** |
+| `book.copyWithNull`  | **0.025** |        0.030 |         0.312 | **0.026** |
 
 
 ### Charcoal-only
@@ -119,18 +119,18 @@ What the direct writer and reader save, against going through maps with `dart:co
 
 | Scenario  | `toJson` | `jsonEncode(toMap())` | `fromJson` | `fromMap(jsonDecode())` |
 | :-------- | -------: | --------------------: | ---------: | ----------------------: |
-| `book`    |     4.17 |                  6.30 |       3.35 |                    4.90 |
-| `catalog` |    4,680 |                 6,755 |      3,428 |                   4,821 |
+| `book`    |     4.15 |                  6.22 |       3.30 |                    5.36 |
+| `catalog` |    4,841 |                 7,796 |      3,448 |                   6,045 |
 
 What a mutable class has instead: a deep `copy`, rebuilding its collections and mutable classes, and comparing by content.
 
 | Scenario   |  `copy` | `contentEquals` | `contentHash` |
 | :--------- | ------: | --------------: | ------------: |
-| `book`     |   0.095 |           0.118 |         0.117 |
-| `catalog`  |     118 |             141 |           136 |
+| `book`     |   0.102 |           0.118 |         0.118 |
+| `catalog`  |     132 |             167 |           176 |
 | `sealed2`  |    0.99 |            0.47 |          0.79 |
-| `sealed8`  |    1.17 |            0.65 |          0.86 |
-| `sealed44` |    1.81 |            1.23 |          1.30 |
+| `sealed8`  |    1.12 |            0.67 |          0.86 |
+| `sealed44` |    1.82 |            1.28 |          1.39 |
 
 
 ### Build Step
@@ -139,11 +139,11 @@ Build times are mostly `build_runner` compiling its builders from cold, so they 
 
 | Library           | Build (s) | Generated code (KB) | Executable (KB) |
 | :---------------- | --------: | ------------------: | --------------: |
-| Charcoal          |        35 |                 441 |           7,104 |
+| Charcoal          |        36 |                 452 |           7,104 |
 | Hand-written      |        20 |                   0 |           6,688 |
-| json_serializable |        34 |                  18 |           6,671 |
-| dart_mappable     |        34 |                 219 |           7,378 |
-| freezed           |        34 |                 244 |           6,805 |
+| json_serializable |        35 |                  18 |           6,671 |
+| dart_mappable     |        36 |                 219 |           7,378 |
+| freezed           |        40 |                 244 |           6,805 |
 
 You can check the exact code for each test on this folder. Note that these are from local runs, so treat them with skepticism.
 
@@ -154,26 +154,24 @@ Ultra-fast means Charcoal pays a hefty cost: a lot of the internal is hand-rolle
 
 - **Writing JSON:** Charcoal's direct writer takes about a third less time than `json_serializable` and about a third of the time of `dart_mappable`. It writes straight to a buffer, with no intermediate map.
 - **Reading JSON:** Charcoal takes about a third less time than `json_serializable` and well under half the time of `dart_mappable`. It parses straight into the class, while the others build a map through `jsonDecode` first.
-- **Maps:** Charcoal takes about 10% less time than `json_serializable` on `toMap`, and is tied on `fromMap`, where parsing the date in `book` is most of the work for everyone. It matches hand-written code. The gaps are smaller here because both are direct code. `dart_mappable` is several times slower, as it dispatches at runtime.
+- **Maps:** Charcoal takes about 10% less time than `json_serializable` on `toMap` and `fromMap`, and matches hand-written code. The gaps are smaller here because both are direct code. `dart_mappable` is several times slower, as it dispatches at runtime.
 - **freezed:** it matches `json_serializable` on JSON, as it generates its JSON code through it, but its `==` is several times slower than Charcoal's on anything holding a collection.
 - **Sealed families:** picking a leaf to write costs almost nothing, even with 44 of them, as it is a `switch` on the type. Picking one to read is what grows: a `switch` over strings compares tags one by one, so `sealed44.fromMap` costs nearly twice `sealed2.fromMap`, in Charcoal as in hand-written code. `dart_mappable` takes about 9 times as long as Charcoal there.
 - **Escaped strings:** reading them takes a third of the time of anything built on `jsonDecode`.
 - **Equality and copies:** a holder calls the generated `$equals` and `$hash` of what it holds directly, through a `switch` for a sealed family, rather than making a dynamic call to `==`. They are inlined, and `copyWith` is a closure rather than a tear-off, which would be a second call.
+- **Whole-program types:** the AOT compiler works out which concrete class each field holds across the whole program, and where it cannot, every `.length` or `[]` on that field becomes a dynamic call, everywhere. So the direct reader holds what it reads in fields of a small class rather than in locals, whose types the compiler loses across the loop.
 
 
 ### Where Charcoal Falls Short
 
-- **`==` loses to hand-written code on `book` and `catalog`**, taking about 25% more. This is not explained yet.
-- **`sealed2.equals`** takes over twice as long as hand-written code, which a dynamic call between only two leaves suits best. This is not explained yet either.
-- **`sealed44.hashCode`** takes about 45% more than hand-written code, as the `switch` over 44 leaves checks them one by one, where a dynamic call does not grow.
-- **`plain.fromJson`** is tied with everyone but `freezed`. An earlier run had Charcoal at 1.70, but neither the code before these changes nor after gets that again on its own, so it was noise.
+- **`==` loses to hand-written code on `book` and `catalog`**, taking about 25% more on `book`. The comparison code is not the cause: `copyWith` is a function type, and the compiler cannot see what callers pass through one, so `Book`'s list and map fields could hold any class, and every use of them goes dynamic. A plain method or a wrapper object, as `freezed` has, gives `book.equals` 115 ns against 168, beating hand-written code at 130, in a separate comparison. Each gives up exact types or trips a lint, so the function type stays. A real app often widens such fields anyway, by building them from more than one list class.
 
 
 ## Questions Settled
 
 - **Ordering comparisons by cost is worth it:** when only a cheap field differs, `book.equalsOtherLast` takes 0.017 against 0.130 for hand-written code in declaration order. The order is fixed at build time, so it adds nothing at run time.
 - **Generating an enum `switch` is not worth it:** in a separate comparison, it was only about 20% faster than `values.byName`, as both compare names one by one, at 97 against 118 ns for the last of 44 values.
-- **Calling `$equals` directly is worth it:** going through `==` and with nothing inlined, `sealed8.equals` took 1.97, against 0.90 now, and `sealed8.hashCode` 2.25, against 1.34. With the inlining below, the executable grew by 1.4%, from 7,004 to 7,104 KB.
+- **Calling `$equals` directly is worth it:** going through `==` and with nothing inlined, `sealed8.equals` took 1.97, against 0.90 with it, and `sealed8.hashCode` 2.25, against 1.34. With the inlining below, the executable grew by 1.4%, from 7,004 to 7,104 KB.
 - **Inlining `$equals` and `$hash` is worth it:** in a separate comparison, it took `flat.equals` from 10.8 to 9.1 ns, and `sealed44.equals` from 1.61 to 1.34 µs.
-- **`copyWith` costs nothing for its exact types:** returning a closure took `book.copyWith` from 0.039 to 0.025, against 0.025 for a plain method in a separate comparison. A wrapper object, as `freezed` has, would trip `avoid_redundant_argument_values` on `copyWith(notes: null)`.
-- **`catalog.fromMap` was noise:** with 5 rounds, it is 1,665 against 1,645 for hand-written code.
+- **Holding what the reader reads in fields is worth it:** it costs reading nothing, and took `sealed2.equals` from 0.73 to 0.32, `sealed8.equals` from 0.90 to 0.53, `sealed44.equals` from 1.49 to 1.09, and `sealed44.hashCode` from 1.87 to 1.34.
+- **A `copyWith` call costs nothing for its exact types:** returning a closure took `book.copyWith` from 0.039 to 0.025, against 0.025 for a plain method in a separate comparison. A wrapper object, as `freezed` has, would trip `avoid_redundant_argument_values` on `copyWith(notes: null)`. What the function type does cost is elsewhere, in `==` above.

@@ -119,15 +119,41 @@ abstract final class JsonWriter() {
     return "'${field.name.replaceAll(r'$', r'\$')}'";
   }
 
+  /// What `$read` holds each field in until it calls the constructor.
+  ///
+  /// Fields rather than locals, as the compiler loses the exact type of a
+  /// local carried across the loop, and so of the field it ends up in, and
+  /// then every use of that field anywhere costs a dynamic call.
+  static String readFields(ClassModel model) {
+    if (model.fields.isEmpty) {
+      return '';
+    }
+    final declarations = model.fields.indexed.map((entry) {
+      final (index, field) = entry;
+      final type = FieldCodec.of(field.parameterType).typeName;
+      final held = field.parameterType is NullableFieldType ? type : '$type?';
+      final initial = field.defaultValue == null
+          ? ''
+          : ' = ${model.owner}.\$d$index';
+      return '$held \$f$index$initial;';
+    });
+    return '''
+final class ${_readFieldsOf(model)} {
+  ${declarations.join('\n')}
+}
+''';
+  }
+
+  static String _readFieldsOf(ClassModel model) {
+    return '_\$${model.owner.replaceFirst(r'_$', '')}Read';
+  }
+
   /// The body of `$read`, which builds no map.
   static String read(ClassModel model) {
     final out = StringBuffer();
     final fields = model.fields;
-    for (final (index, field) in fields.indexed) {
-      final type = FieldCodec.of(field.parameterType).typeName;
-      final local = field.parameterType is NullableFieldType ? type : '$type?';
-      final initial = field.defaultValue == null ? '' : ' = \$d$index';
-      out.writeln('$local \$f$index$initial;');
+    if (fields.isNotEmpty) {
+      out.writeln('final \$s = ${_readFieldsOf(model)}();');
     }
     out
       ..writeln(r'if ($r.enterObject()) {')
@@ -137,7 +163,7 @@ abstract final class JsonWriter() {
       ..writeln(r'switch ($field) {');
     for (final (index, field) in fields.indexed) {
       out.writeln('case $index:');
-      _readField(out, field, index);
+      _readField(out, model, field, index);
     }
     out
       ..writeln(r'default: $r.skipValue();')
@@ -150,8 +176,8 @@ abstract final class JsonWriter() {
         .map((entry) {
           final (index, field) = entry;
           final local = field.parameterType is NullableFieldType
-              ? '\$f$index'
-              : '\$f$index!';
+              ? '\$s.\$f$index'
+              : '\$s.\$f$index!';
           return field.isNamedParameter ? '${field.name}: $local' : local;
         })
         .join(', ');
@@ -159,9 +185,14 @@ abstract final class JsonWriter() {
     return out.toString();
   }
 
-  static void _readField(StringBuffer out, FieldModel field, int index) {
+  static void _readField(
+    StringBuffer out,
+    ClassModel model,
+    FieldModel field,
+    int index,
+  ) {
     final codec = FieldCodec.of(field.parameterType);
-    final target = '\$f$index';
+    final target = '\$s.\$f$index';
     if (field.defaultValue == null ||
         field.parameterType is NullableFieldType) {
       codec.read(out, target, 0);
@@ -169,7 +200,7 @@ abstract final class JsonWriter() {
     }
     out
       ..writeln(r'if ($r.tryReadNull()) {')
-      ..writeln('$target = \$d$index;')
+      ..writeln('$target = ${model.owner}.\$d$index;')
       ..writeln('} else {');
     codec.read(out, target, 0);
     out.writeln('}');
