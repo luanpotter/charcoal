@@ -240,7 +240,6 @@ void main() {
       final class Book(this.title) with BookCharcoal {
         final String title;
 
-        @override
         Book copy() => this;
       }
       void use(Book book) => book.copy();
