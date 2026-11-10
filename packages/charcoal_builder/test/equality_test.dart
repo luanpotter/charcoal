@@ -136,8 +136,35 @@ void main() {
               contains(r'($a.shelf as List<Details>)'),
               contains(r'final $x0 = $a.quotes.iterator;'),
               contains(r'if (!$b.tags.contains($e0)) return false;'),
-              contains(r'final $o0 = $b.prizes[$e0.key] as Details?;'),
+              contains(r'final $o0 = $b.prizes[$e0.key];'),
               contains(r'$c0 ^= CharcoalHash.finish($t0);'),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('calls what it holds directly, even when it may be null', () async {
+      final result = await build(
+        '''
+        $header
+        @immutable
+        @Charcoal()
+        final class Author(this.name) with AuthorCharcoal {
+          final String name;
+        }
+        @Charcoal()
+        final class Book(this.author) with BookCharcoal {
+          final Author? author;
+        }
+        ''',
+        outputs: {
+          output: decodedMatches(
+            allOf([
+              contains(r'if (!AuthorCharcoal.$equals($v0, $w0)) return false;'),
+              contains(r'CharcoalHash.mix($h, AuthorCharcoal.$hash($v0))'),
             ]),
           ),
         },

@@ -86,7 +86,10 @@ abstract final class JsonWriter() {
         _ => '$value.isEmpty',
       };
     });
-    final body = checks.isEmpty ? 'true' : checks.join(' && ');
+    if (checks.isEmpty) {
+      return 'bool get isEmpty => true;';
+    }
+    final body = checks.join(' && ');
     return '''
   bool get isEmpty {
     final \$it = this as ${model.name};

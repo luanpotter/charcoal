@@ -235,6 +235,33 @@ void main() {
 
       expect(result.succeeded, isTrue);
     });
+
+    test('of one leaf compares with no arm for another', () async {
+      final result = await build(
+        '''
+        $header
+        @Charcoal()
+        sealed class Edition();
+        final class Hardcover(
+          this.year,
+        ) extends Edition with HardcoverCharcoal {
+          final int year;
+        }
+        ''',
+        outputs: {
+          output: decodedMatches(
+            allOf([
+              contains(
+                r'final Hardcover $r => HardcoverCharcoal.$equals($l, $r)',
+              ),
+              isNot(contains('_ => false')),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
   });
 
   group('an open class', () {

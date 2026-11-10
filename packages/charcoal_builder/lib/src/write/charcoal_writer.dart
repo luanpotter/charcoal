@@ -40,6 +40,12 @@ abstract final class CharcoalWriter() {
     if (model.handWritten.contains('toString')) {
       return '';
     }
+    if (model.fields.isEmpty) {
+      return '''
+  @override
+  String toString() => '${model.baseName}()';
+''';
+    }
     return '''
   @override
   String toString() {

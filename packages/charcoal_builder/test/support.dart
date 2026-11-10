@@ -55,7 +55,9 @@ Future<void> expectBuildError(String source, String message) async {
   expect(result.errors.join('\n'), contains(message));
 }
 
-/// Fails the build on any error in a library with a generated part.
+/// Fails the build on any error in a library with a generated part, and on any
+/// warning in the part, as only the compiler sees what a consuming project's
+/// analyzer leaves out with `*.g.dart`.
 final class _CompilesBuilder() implements Builder {
   @override
   Map<String, List<String>> get buildExtensions => const {
@@ -75,15 +77,17 @@ final class _CompilesBuilder() implements Builder {
     for (final fragment in library.fragments) {
       final path = fragment.source.fullName;
       final result = await library.session.getErrors(path);
-      if (result is ErrorsResult) {
-        result.diagnostics.where(_isError).forEach((diagnostic) {
+      final isPart = path.endsWith(_partExtension);
+      if (result is! ErrorsResult) {
+        continue;
+      }
+      for (final diagnostic in result.diagnostics) {
+        final severity = diagnostic.severity;
+        if (severity == Severity.error ||
+            isPart && severity == Severity.warning) {
           log.severe('Generated code fails to compile: $path: $diagnostic');
-        });
+        }
       }
     }
-  }
-
-  bool _isError(Diagnostic diagnostic) {
-    return diagnostic.severity == Severity.error;
   }
 }
