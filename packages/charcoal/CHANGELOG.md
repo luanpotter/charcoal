@@ -1,3 +1,7 @@
+## 0.0.7
+
+ - Bump version to keep all packages in the workspace in lockstep.
+
 ## 0.0.6
 
  - **FIX**: All classes must be final or sealed ([#39](https://github.com/luanpotter/charcoal/issues/39)). ([c4e54f00](https://github.com/luanpotter/charcoal/commit/c4e54f00593a183496eff0b2e1401487eb6b2819))
