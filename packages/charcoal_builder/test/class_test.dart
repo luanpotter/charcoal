@@ -26,7 +26,7 @@ void main() {
               startsWith('// dart format width=120\n'),
               contains('// GENERATED CODE'),
               contains("part of 'book.dart';"),
-              contains('mixin BookCharcoal {'),
+              contains('mixin BookCharcoal'),
             ),
           ),
         },

@@ -67,8 +67,9 @@ abstract final class CharcoalWriter() {
   }
 
   static String _mixin(ClassModel model) {
+    final interfaces = model.isGeneric ? '' : ' implements CharcoalEncodable';
     return code('''
-      mixin ${model.owner}${model.typeParameters} {
+      mixin ${model.owner}${model.typeParameters}$interfaces {
         ${model.isGeneric ? '' : _instanceJson(model)}
 
         ${CopyWriter.members(model)}
@@ -106,10 +107,13 @@ abstract final class CharcoalWriter() {
   static String _instanceJson(ClassModel model) {
     final name = model.name;
     return code('''
+      @override
       Map<String, Object?> toMap() => \$encode(this as $name);
 
+      @override
       void writeJson(StringBuffer \$sink) => \$write(this as $name, \$sink);
 
+      @override
       String toJsonString() => encodeJsonString(this as $name);
       ''');
   }
