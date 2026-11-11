@@ -1,3 +1,7 @@
+## 0.0.7
+
+ - **PERF**: Speed equals implementation up ([#48](https://github.com/luanpotter/charcoal/issues/48)). ([00c962e9](https://github.com/luanpotter/charcoal/commit/00c962e989a80b710a673fb5581b319a3f9b9549))
+
 ## 0.0.6
 
  - **PERF**: Perform small micro-optimizations; update benchmarks ([#46](https://github.com/luanpotter/charcoal/issues/46)). ([c6f4b18a](https://github.com/luanpotter/charcoal/commit/c6f4b18a7a03026c6355aaa1396d451ba141e9bb))
