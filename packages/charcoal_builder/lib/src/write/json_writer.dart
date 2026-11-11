@@ -23,6 +23,13 @@ abstract final class JsonWriter() {
     ).replaceAll(r'\', r'\\').replaceAll("'", r"\'").replaceAll(r'$', r'\$');
   }
 
+  /// The decoding statics as one constant, for code generic over the class.
+  static String decoder(String name) {
+    return code('''
+      static const decoder = CharcoalDecoder<$name>(fromJsonString, fromMap);
+      ''');
+  }
+
   static String encodeEntries(ClassModel model) {
     return [
       if (model.familyTag case final tag?)
