@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:charcoal/charcoal.dart';
 import 'package:charcoal_builder/src/model/class_model.dart';
 import 'package:charcoal_builder/src/model/field_type.dart';
+import 'package:charcoal_builder/src/write/code.dart';
 import 'package:charcoal_builder/src/write/json/field_codec.dart';
 import 'package:charcoal_builder/src/write/json/statements.dart';
 
@@ -90,12 +91,12 @@ abstract final class JsonWriter() {
       return 'bool get isEmpty => true;';
     }
     final body = checks.join(' && ');
-    return '''
-  bool get isEmpty {
-    final \$it = this as ${model.name};
-    return $body;
-  }
-''';
+    return code('''
+      bool get isEmpty {
+        final \$it = this as ${model.name};
+        return $body;
+      }
+      ''');
   }
 
   /// One constant per default, typed so that it means what it does in the
@@ -140,11 +141,11 @@ abstract final class JsonWriter() {
           : ' = ${model.owner}.\$d$index';
       return '$held \$f$index$initial;';
     });
-    return '''
-final class ${_readFieldsOf(model)} {
-  ${declarations.join('\n')}
-}
-''';
+    return code('''
+      final class ${_readFieldsOf(model)} {
+        ${declarations.join('\n')}
+      }
+      ''');
   }
 
   static String _readFieldsOf(ClassModel model) {

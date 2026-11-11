@@ -35,7 +35,7 @@ build() {
         "override:charcoal_builder:{path: $root/packages/charcoal_builder}"
     fi
     dart pub get
-    dart run tool/families.dart "$library" >lib/families.dart
+    dart run "$root/benchmark/tool/families.dart" "$library" >lib/families.dart
     local start="$SECONDS"
     dart run build_runner build
     echo "$((SECONDS - start))" >"$work/results/$library.seconds"

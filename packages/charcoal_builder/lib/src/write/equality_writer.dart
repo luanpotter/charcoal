@@ -1,5 +1,6 @@
 import 'package:charcoal_builder/src/model/class_model.dart';
 import 'package:charcoal_builder/src/model/field_type.dart';
+import 'package:charcoal_builder/src/write/code.dart';
 import 'package:charcoal_builder/src/write/json/field_codec.dart';
 
 /// What a comparison costs, so that cheap ones can tell values apart first.
@@ -21,19 +22,19 @@ abstract final class EqualityWriter() {
       if (model.handWritten.contains('==')) {
         return '';
       }
-      return '''
-  @override
-  bool operator ==(Object \$other) => \$other is $name && \$equals(this as $name, \$other);
+      return code('''
+        @override
+        bool operator ==(Object \$other) => \$other is $name && \$equals(this as $name, \$other);
 
-  @override
-  int get hashCode => \$hash(this as $name);
-''';
+        @override
+        int get hashCode => \$hash(this as $name);
+        ''');
     }
-    return '''
-  bool contentEquals($name \$other) => \$equals(this as $name, \$other);
+    return code('''
+      bool contentEquals($name \$other) => \$equals(this as $name, \$other);
 
-  int get contentHash => \$hash(this as $name);
-''';
+      int get contentHash => \$hash(this as $name);
+      ''');
   }
 
   /// Holders call it directly, so it checks identity itself, which pays off on
