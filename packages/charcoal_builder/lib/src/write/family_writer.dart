@@ -61,6 +61,8 @@ abstract final class FamilyWriter() {
           Error.throwWithStackTrace(CharcoalException('$name', \$error), \$stack);
         }
       }
+
+      ${JsonWriter.decoder(name)}
       ''');
   }
 

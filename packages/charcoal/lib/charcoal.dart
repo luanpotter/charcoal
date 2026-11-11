@@ -26,6 +26,7 @@ export 'package:meta/meta.dart' show immutable;
 export 'src/adapters/adapters.dart';
 export 'src/charcoal.dart';
 export 'src/charcoal_adapter.dart';
+export 'src/charcoal_decoder.dart';
 export 'src/charcoal_encodable.dart';
 export 'src/charcoal_exception.dart';
 export 'src/charcoal_hash.dart';

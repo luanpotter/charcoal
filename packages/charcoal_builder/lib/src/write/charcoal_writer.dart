@@ -82,7 +82,7 @@ abstract final class CharcoalWriter() {
 
         ${_equalityStatics(model)}
 
-        ${model.isGeneric ? '' : '${_entryJson(model)}\n${_directJson(model)}'}
+        ${model.isGeneric ? '' : '${_entryJson(model)}\n\n${_directJson(model)}'}
       }
 
       ${model.isGeneric ? '' : JsonWriter.readFields(model)}
@@ -163,6 +163,8 @@ abstract final class CharcoalWriter() {
           Error.throwWithStackTrace(CharcoalException('$name', \$error), \$stack);
         }
       }
+
+      ${JsonWriter.decoder(name)}
       ''');
   }
 
