@@ -1,4 +1,5 @@
 import 'package:charcoal_builder/src/model/class_model.dart';
+import 'package:charcoal_builder/src/write/code.dart';
 import 'package:charcoal_builder/src/write/copy_writer.dart';
 import 'package:charcoal_builder/src/write/equality_writer.dart';
 import 'package:charcoal_builder/src/write/family_writer.dart';
@@ -41,18 +42,18 @@ abstract final class CharcoalWriter() {
       return '';
     }
     if (model.fields.isEmpty) {
-      return '''
-  @override
-  String toString() => '${model.baseName}()';
-''';
+      return code('''
+        @override
+        String toString() => '${model.baseName}()';
+        ''');
     }
-    return '''
-  @override
-  String toString() {
-    final \$it = this as ${model.name};
-    return '${_toStringOf(model)}';
-  }
-''';
+    return code('''
+      @override
+      String toString() {
+        final \$it = this as ${model.name};
+        return '${_toStringOf(model)}';
+      }
+      ''');
   }
 
   static String _toStringOf(ClassModel model) {
@@ -66,99 +67,99 @@ abstract final class CharcoalWriter() {
   }
 
   static String _mixin(ClassModel model) {
-    return '''
-mixin ${model.owner}${model.typeParameters} {
-  ${model.isGeneric ? '' : _instanceJson(model)}
+    return code('''
+      mixin ${model.owner}${model.typeParameters} {
+        ${model.isGeneric ? '' : _instanceJson(model)}
 
-  ${CopyWriter.members(model)}
+        ${CopyWriter.members(model)}
 
-  ${EqualityWriter.members(model)}
+        ${EqualityWriter.members(model)}
 
-  ${_toString(model)}
+        ${_toString(model)}
 
-  ${JsonWriter.isEmptyGetter(model)}
+        ${JsonWriter.isEmptyGetter(model)}
 
-  ${_equalityStatics(model)}
+        ${_equalityStatics(model)}
 
-  ${model.isGeneric ? '' : '${_entryJson(model)}\n${_directJson(model)}'}
-}
+        ${model.isGeneric ? '' : '${_entryJson(model)}\n${_directJson(model)}'}
+      }
 
-${model.isGeneric ? '' : JsonWriter.readFields(model)}
-''';
+      ${model.isGeneric ? '' : JsonWriter.readFields(model)}
+      ''');
   }
 
   /// What one use of a generic class needs, with its type arguments known.
   static String _instantiated(ClassModel model) {
-    return '''
-abstract final class ${model.owner} {
-  ${CopyWriter.copyStatic(model)}
+    return code('''
+      abstract final class ${model.owner} {
+        ${CopyWriter.copyStatic(model)}
 
-  ${_equalityStatics(model)}
+        ${_equalityStatics(model)}
 
-  ${_directJson(model)}
-}
+        ${_directJson(model)}
+      }
 
-${JsonWriter.readFields(model)}
-''';
+      ${JsonWriter.readFields(model)}
+      ''');
   }
 
   static String _instanceJson(ClassModel model) {
     final name = model.name;
-    return '''
-  Map<String, Object?> toMap() => \$encode(this as $name);
+    return code('''
+      Map<String, Object?> toMap() => \$encode(this as $name);
 
-  void writeJson(StringBuffer \$sink) => \$write(this as $name, \$sink);
+      void writeJson(StringBuffer \$sink) => \$write(this as $name, \$sink);
 
-  String toJsonString() => encodeJsonString(this as $name);
-''';
+      String toJsonString() => encodeJsonString(this as $name);
+      ''');
   }
 
   static String _equalityStatics(ClassModel model) {
     final name = model.name;
     final parameters = model.typeParameters;
     // Inlined, they save `==` and a family's switch a call per value.
-    return '''
-  @pragma('vm:prefer-inline')
-  static bool \$equals$parameters($name \$a, $name \$b) {
-    ${EqualityWriter.equals(model)}
-  }
+    return code('''
+      @pragma('vm:prefer-inline')
+      static bool \$equals$parameters($name \$a, $name \$b) {
+        ${EqualityWriter.equals(model)}
+      }
 
-  @pragma('vm:prefer-inline')
-  static int \$hash$parameters($name \$it) {
-    ${EqualityWriter.hash(model)}
-  }
-''';
+      @pragma('vm:prefer-inline')
+      static int \$hash$parameters($name \$it) {
+        ${EqualityWriter.hash(model)}
+      }
+      ''');
   }
 
   /// What the outside calls, wrapping any failure below it.
   static String _entryJson(ClassModel model) {
     final name = model.name;
-    return '''
-  static String encodeJsonString($name \$it) {
-    final \$sink = StringBuffer();
-    \$write(\$it, \$sink);
-    return \$sink.toString();
-  }
+    return code('''
+      static String encodeJsonString($name \$it) {
+        final \$sink = StringBuffer();
+        \$write(\$it, \$sink);
+        return \$sink.toString();
+      }
 
-  static $name fromMap(Map<String, Object?> \$json) {
-    try {
-      return \$decode(\$json);
-    } catch (\$error, \$stack) {
-      Error.throwWithStackTrace(CharcoalException('$name', \$error), \$stack);
-    }
-  }
+      static $name fromMap(Map<String, Object?> \$json) {
+        try {
+          return \$decode(\$json);
+        } catch (\$error, \$stack) {
+          Error.throwWithStackTrace(CharcoalException('$name', \$error), \$stack);
+        }
+      }
 
-  static $name fromJsonString(String \$source) {
-    try {
-      final \$r = CharcoalJsonReader(\$source);
-      final \$it = \$read(\$r);
-      \$r.finish();
-      return \$it;
-    } catch (\$error, \$stack) {
-      Error.throwWithStackTrace(CharcoalException('$name', \$error), \$stack);
-    }
-  }
-''';
+      static $name fromJsonString(String \$source) {
+        try {
+          final \$r = CharcoalJsonReader(\$source);
+          final \$it = \$read(\$r);
+          \$r.finish();
+          return \$it;
+        } catch (\$error, \$stack) {
+          Error.throwWithStackTrace(CharcoalException('$name', \$error), \$stack);
+        }
+      }
+      ''');
   }
 
   /// What a holder calls for a nested value, adding no `try`.
@@ -168,22 +169,22 @@ ${JsonWriter.readFields(model)}
     final arguments = model.fields.indexed
         .map((entry) => JsonWriter.decodeArgument(entry.$2, entry.$1))
         .join(', ');
-    return '''
-  static Map<String, Object?> \$encode($name \$it) => {$entries};
+    return code('''
+      static Map<String, Object?> \$encode($name \$it) => {$entries};
 
-  static void \$write($name \$it, StringBuffer \$sink) {
-    ${JsonWriter.write(model)}
-  }
+      static void \$write($name \$it, StringBuffer \$sink) {
+        ${JsonWriter.write(model)}
+      }
 
-  static const List<String> \$keys = [${JsonWriter.keys(model)}];
+      static const List<String> \$keys = [${JsonWriter.keys(model)}];
 
-  ${JsonWriter.defaults(model)}
+      ${JsonWriter.defaults(model)}
 
-  static $name \$read(CharcoalJsonReader \$r) {
-    ${JsonWriter.read(model)}
-  }
+      static $name \$read(CharcoalJsonReader \$r) {
+        ${JsonWriter.read(model)}
+      }
 
-  static $name \$decode(Map<String, Object?> \$json) => ${model.constructor}($arguments);
-''';
+      static $name \$decode(Map<String, Object?> \$json) => ${model.constructor}($arguments);
+      ''');
   }
 }

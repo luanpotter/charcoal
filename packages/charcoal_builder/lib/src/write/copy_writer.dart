@@ -1,5 +1,6 @@
 import 'package:charcoal_builder/src/model/class_model.dart';
 import 'package:charcoal_builder/src/model/field_type.dart';
+import 'package:charcoal_builder/src/write/code.dart';
 import 'package:charcoal_builder/src/write/json/field_codec.dart';
 
 /// Writes `copy` and `copyWith`, which share only what is a value.
@@ -8,12 +9,11 @@ abstract final class CopyWriter() {
   static const _source = r'_$it';
 
   /// What marks a `copyWith` parameter as left out, once per part.
-  static const sentinel =
-      '''
-const Object $_keep = _\$Keep();
+  static final String sentinel = code('''
+    const Object $_keep = _\$Keep();
 
-final class const _\$Keep();
-''';
+    final class const _\$Keep();
+    ''');
 
   static bool needsSentinel(Iterable<ClassModel> classes) {
     return classes.any((model) => model.fields.any(_needsSentinel));
@@ -30,21 +30,21 @@ final class const _\$Keep();
     // returns a closure, as a tear-off of a method would be a second call.
     final construct = _construct(model, (field) => _replaced(model, field));
     if (model.fields.isEmpty) {
-      return '''
-$copy
+      return code('''
+        $copy
 
-$name Function() get copyWith => () => $construct;
-''';
+        $name Function() get copyWith => () => $construct;
+        ''');
     }
-    return '''
-$copy
+    return code('''
+      $copy
 
-$name Function(${_parameters(model.fields, _publicParameter)}) get copyWith {
-  final $_source = this as $name;
-  return (${_parameters(model.fields, _privateParameter)}) =>
-      $construct;
-}
-''';
+      $name Function(${_parameters(model.fields, _publicParameter)}) get copyWith {
+        final $_source = this as $name;
+        return (${_parameters(model.fields, _privateParameter)}) =>
+            $construct;
+      }
+      ''');
   }
 
   static String _copy(ClassModel model) {
@@ -55,11 +55,11 @@ $name Function(${_parameters(model.fields, _publicParameter)}) get copyWith {
     if (model.isImmutable) {
       return '$name copy() => this as $name;';
     }
-    return '''
-$name copy() => \$copy(this as $name);
+    return code('''
+      $name copy() => \$copy(this as $name);
 
-${copyStatic(model)}
-''';
+      ${copyStatic(model)}
+      ''');
   }
 
   /// What a holder calls, going through a hand-written `copy` if there is one.

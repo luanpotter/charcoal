@@ -1,4 +1,5 @@
 import 'package:charcoal_builder/src/model/class_model.dart';
+import 'package:charcoal_builder/src/write/code.dart';
 import 'package:charcoal_builder/src/write/json_writer.dart';
 
 /// Writes what a sealed class generates, as an exhaustive switch per operation.
@@ -8,73 +9,73 @@ abstract final class FamilyWriter() {
       return _generic(model);
     }
     final name = model.name;
-    return '''
-abstract final class ${model.owner} {
-  ${_directJson(model)}
+    return code('''
+      abstract final class ${model.owner} {
+        ${_directJson(model)}
 
-  static String encodeJsonString($name \$it) {
-    final \$sink = StringBuffer();
-    \$write(\$it, \$sink);
-    return \$sink.toString();
-  }
+        static String encodeJsonString($name \$it) {
+          final \$sink = StringBuffer();
+          \$write(\$it, \$sink);
+          return \$sink.toString();
+        }
 
-  static $name fromMap(Map<String, Object?> \$json) {
-    try {
-      return \$decode(\$json);
-    } catch (\$error, \$stack) {
-      Error.throwWithStackTrace(CharcoalException('$name', \$error), \$stack);
-    }
-  }
+        static $name fromMap(Map<String, Object?> \$json) {
+          try {
+            return \$decode(\$json);
+          } catch (\$error, \$stack) {
+            Error.throwWithStackTrace(CharcoalException('$name', \$error), \$stack);
+          }
+        }
 
-  static $name fromJsonString(String \$source) {
-    try {
-      final \$r = CharcoalJsonReader(\$source);
-      final \$it = \$read(\$r);
-      \$r.finish();
-      return \$it;
-    } catch (\$error, \$stack) {
-      Error.throwWithStackTrace(CharcoalException('$name', \$error), \$stack);
-    }
-  }
+        static $name fromJsonString(String \$source) {
+          try {
+            final \$r = CharcoalJsonReader(\$source);
+            final \$it = \$read(\$r);
+            \$r.finish();
+            return \$it;
+          } catch (\$error, \$stack) {
+            Error.throwWithStackTrace(CharcoalException('$name', \$error), \$stack);
+          }
+        }
 
-  ${_statics(model)}
-}
+        ${_statics(model)}
+      }
 
-extension ${name}CharcoalMembers on $name {
-  Map<String, Object?> toMap() => ${model.owner}.\$encode(this);
+      extension ${name}CharcoalMembers on $name {
+        Map<String, Object?> toMap() => ${model.owner}.\$encode(this);
 
-  void writeJson(StringBuffer \$sink) => ${model.owner}.\$write(this, \$sink);
+        void writeJson(StringBuffer \$sink) => ${model.owner}.\$write(this, \$sink);
 
-  String toJsonString() => ${model.owner}.encodeJsonString(this);
+        String toJsonString() => ${model.owner}.encodeJsonString(this);
 
-  ${_members(model)}
-}
-''';
+        ${_members(model)}
+      }
+      ''');
   }
 
   /// A generic sealed class has no JSON, until a use knows the type arguments.
   static String _generic(FamilyModel model) {
     final parameters = model.typeParameters;
-    return '''
-abstract final class ${model.owner} {
-  ${_statics(model)}
-}
+    return code('''
+      abstract final class ${model.owner} {
+        ${_statics(model)}
+      }
 
-extension ${model.baseName}CharcoalMembers$parameters on ${model.name} {
-  ${_members(model)}
-}
-''';
+      extension ${model.baseName}CharcoalMembers$parameters on ${model.name} {
+        ${_members(model)}
+      }
+      ''');
   }
 
   /// What one use of a generic sealed class needs, knowing its type arguments.
   static String writeInstantiated(FamilyModel model) {
-    return '''
-abstract final class ${model.owner} {
-  ${_directJson(model)}
+    return code('''
+      abstract final class ${model.owner} {
+        ${_directJson(model)}
 
-  ${_statics(model)}
-}
-''';
+        ${_statics(model)}
+      }
+      ''');
   }
 
   static String _directJson(FamilyModel model) {
@@ -86,26 +87,26 @@ abstract final class ${model.owner} {
               '${leaf.owner}.\$write(\$l, \$sink);';
         })
         .join('\n');
-    return '''
-  static Map<String, Object?> \$encode($name \$it) =>
-      ${_switch(model, (leaf) => '${leaf.owner}.\$encode(\$l)')};
+    return code('''
+      static Map<String, Object?> \$encode($name \$it) =>
+          ${_switch(model, (leaf) => '${leaf.owner}.\$encode(\$l)')};
 
-  static void \$write($name \$it, StringBuffer \$sink) {
-    switch (\$it) {
-      $writes
-    }
-  }
+      static void \$write($name \$it, StringBuffer \$sink) {
+        switch (\$it) {
+          $writes
+        }
+      }
 
-  static $name \$decode(Map<String, Object?> \$json) {
-    final \$tag = \$json[$key] as String;
-    return ${_byTag(model, r'$decode($json)')};
-  }
+      static $name \$decode(Map<String, Object?> \$json) {
+        final \$tag = \$json[$key] as String;
+        return ${_byTag(model, r'$decode($json)')};
+      }
 
-  static $name \$read(CharcoalJsonReader \$r) {
-    final \$tag = \$r.peekStringField($key);
-    return ${_byTag(model, r'$read($r)')};
-  }
-''';
+      static $name \$read(CharcoalJsonReader \$r) {
+        final \$tag = \$r.peekStringField($key);
+        return ${_byTag(model, r'$read($r)')};
+      }
+      ''');
   }
 
   /// What a holder calls, where a dynamic call on the root would cost more.
@@ -127,12 +128,11 @@ abstract final class ${model.owner} {
           ? r'$l.hashCode'
           : '${leaf.owner}.\$hash(\$l)';
     });
-    final statics =
-        '''
-  static bool \$equals$parameters($name \$a, $name \$b) => $equals;
+    final statics = code('''
+      static bool \$equals$parameters($name \$a, $name \$b) => $equals;
 
-  static int \$hash$parameters($name \$it) => $hash;
-''';
+      static int \$hash$parameters($name \$it) => $hash;
+      ''');
     if (model.isImmutable) {
       return statics;
     }
@@ -142,11 +142,11 @@ abstract final class ${model.owner} {
     final copy = _switch(model, (leaf) {
       return leaf.isImmutable ? '\$l$cast' : '${leaf.owner}.\$copy(\$l)$cast';
     });
-    return '''
-$statics
+    return code('''
+      $statics
 
-  static $name \$copy$parameters($name \$it) => $copy;
-''';
+      static $name \$copy$parameters($name \$it) => $copy;
+      ''');
   }
 
   static String _members(FamilyModel model) {
@@ -155,13 +155,13 @@ $statics
     if (model.isImmutable) {
       return '$name copy() => this;';
     }
-    return '''
-  $name copy() => $owner.\$copy(this);
+    return code('''
+      $name copy() => $owner.\$copy(this);
 
-  bool contentEquals($name \$other) => $owner.\$equals(this, \$other);
+      bool contentEquals($name \$other) => $owner.\$equals(this, \$other);
 
-  int get contentHash => $owner.\$hash(this);
-''';
+      int get contentHash => $owner.\$hash(this);
+      ''');
   }
 
   static String _switch(
@@ -182,10 +182,11 @@ $statics
           return '$tag => ${leaf.owner}.$call,';
         })
         .join('\n');
-    return '''
-switch (\$tag) {
-  $arms
-  _ => throw ArgumentError.value(\$tag, 'tag', 'Unknown in ${model.baseName}'),
-}''';
+    return code('''
+      switch (\$tag) {
+        $arms
+        _ => throw ArgumentError.value(\$tag, 'tag', 'Unknown in ${model.baseName}'),
+      }
+      ''');
   }
 }
