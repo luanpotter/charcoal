@@ -86,7 +86,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        sealed class Edition(this.year) {
+        sealed class Edition(this.year) with EditionCharcoal {
           final int year;
         }
         final class Ebook._(super.year) extends Edition with EbookCharcoal {

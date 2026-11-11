@@ -18,20 +18,35 @@ abstract final class EqualityWriter() {
 
   static String members(ClassModel model) {
     final name = model.name;
+    final family = model.mutableFamily;
     if (model.isImmutable) {
-      if (model.handWritten.contains('==')) {
-        return '';
+      final operators = model.handWritten.contains('==')
+          ? ''
+          : code('''
+              @override
+              bool operator ==(Object \$other) => \$other is $name && \$equals(this as $name, \$other);
+
+              @override
+              int get hashCode => \$hash(this as $name);
+              ''');
+      if (family == null) {
+        return operators;
       }
       return code('''
-        @override
-        bool operator ==(Object \$other) => \$other is $name && \$equals(this as $name, \$other);
+        $operators
 
-        @override
-        int get hashCode => \$hash(this as $name);
+        bool contentEquals($family \$other) => this == \$other;
+
+        int get contentHash => hashCode;
         ''');
     }
+    final compared = '\$equals(this as $name, \$other)';
+    final equals = family == null
+        ? 'bool contentEquals($name \$other) => $compared;'
+        : 'bool contentEquals($family \$other) => '
+              '\$other is $name && $compared;';
     return code('''
-      bool contentEquals($name \$other) => \$equals(this as $name, \$other);
+      $equals
 
       int get contentHash => \$hash(this as $name);
       ''');

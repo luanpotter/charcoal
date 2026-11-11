@@ -4,17 +4,17 @@ import 'package:charcoal_example/author.dart';
 part 'edition.charcoal.g.dart';
 
 @Charcoal()
-sealed class const Edition({required this.year}) {
+sealed class const Edition({required this.year}) with EditionCharcoal {
   final int year;
 }
 
 /// A marker over the family, not a branch of it.
-sealed class const Readable() implements Edition;
+sealed class const Readable() with ReadableCharcoal implements Edition;
 
 sealed class const Digital({
   required super.year,
   required this.formats,
-}) extends Edition {
+}) extends Edition with DigitalCharcoal {
   final List<String> formats;
 }
 

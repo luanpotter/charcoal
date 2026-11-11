@@ -9,11 +9,13 @@ void main() {
         '''
       $header
       @Charcoal()
-      sealed class Edition({required this.year}) {
+      sealed class Edition({required this.year}) with EditionCharcoal {
         final int year;
       }
-      sealed class Digital({required super.year}) extends Edition;
-      sealed class Readable() implements Edition;
+      sealed class Digital({required super.year})
+          extends Edition with DigitalCharcoal;
+      sealed class Readable() with ReadableCharcoal implements Edition;
+      @immutable
       final class Hardcover({required super.year, this.notes})
           extends Edition with HardcoverCharcoal implements Readable {
         final String? notes;
@@ -47,15 +49,81 @@ void main() {
         outputs: {
           output: decodedMatches(
             allOf([
-              contains('abstract final class EditionCharcoal'),
-              contains('extension EditionCharcoalMembers on Edition'),
               contains(r'final Hardcover $l => HardcoverCharcoal.$encode($l)'),
               contains(r"final $tag = $json['type'] as String;"),
               contains(r"final $tag = $r.peekStringField('type');"),
               contains(r"'Ebook' => EbookCharcoal.$read($r)"),
-              contains('abstract final class DigitalCharcoal'),
-              contains('abstract final class ReadableCharcoal'),
+              contains(r'static Digital $decode('),
+              contains(r'static Readable $decode('),
             ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('declares in the mixin of its root what each leaf has', () async {
+      final result = await build(
+        family,
+        outputs: {
+          output: decodedMatches(
+            allOf([
+              contains(
+                'mixin EditionCharcoal implements CharcoalEncodable {\n'
+                '  Edition copy();\n'
+                '\n'
+                r'  bool contentEquals(Edition $other);'
+                '\n\n'
+                '  int get contentHash;\n',
+              ),
+              contains('mixin DigitalCharcoal {\n  Digital copy();\n'),
+              contains('mixin ReadableCharcoal {\n  Readable copy();\n'),
+              isNot(contains('extension')),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('has each leaf compare to any other in it', () async {
+      final result = await build(
+        family,
+        outputs: {
+          output: decodedMatches(
+            allOf([
+              contains(
+                r'bool contentEquals(Edition $other) => '
+                r'$other is Ebook && $equals(this as Ebook, $other);',
+              ),
+              contains(
+                r'bool contentEquals(Edition $other) => this == $other;',
+              ),
+              contains('int get contentHash => hashCode;'),
+            ]),
+          ),
+        },
+      );
+
+      expect(result.succeeded, isTrue);
+    });
+
+    test('has a leaf under two roots compare to anything', () async {
+      final result = await build(
+        '''
+        $header
+        @Charcoal()
+        sealed class Edition() with EditionCharcoal;
+        @Charcoal()
+        sealed class Listing() with ListingCharcoal;
+        final class Ebook() extends Edition with EbookCharcoal
+            implements Listing;
+        ''',
+        outputs: {
+          output: decodedMatches(
+            contains(r'bool contentEquals(Object $other) => $other is Ebook'),
           ),
         },
       );
@@ -93,7 +161,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         @immutable
         final class Hardcover() extends Edition with HardcoverCharcoal;
         final class Ebook() extends Edition with EbookCharcoal;
@@ -117,13 +185,13 @@ void main() {
         $header
         @immutable
         @Charcoal()
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         final class Hardcover() extends Edition with HardcoverCharcoal;
         ''',
         outputs: {
           output: decodedMatches(
             allOf([
-              contains('Edition copy() => this;'),
+              contains('Edition copy();'),
               contains('bool operator =='),
               contains(
                 r'final Hardcover $r => HardcoverCharcoal.$equals($l, $r)',
@@ -142,7 +210,7 @@ void main() {
         '''
         $header
         @Charcoal(discriminator: 'kind', omit: Omit.none)
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         @Charcoal(tag: "it's \\\$1")
         final class Hardcover(this.notes)
             extends Edition with HardcoverCharcoal {
@@ -169,7 +237,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         final class Hardcover() extends Edition with HardcoverCharcoal;
         ''',
         config: {'discriminator': 'kind'},
@@ -184,7 +252,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        sealed class Edition({this.year = first}) {
+        sealed class Edition({this.year = first}) with EditionCharcoal {
           static const first = 1;
           final int year;
         }
@@ -207,7 +275,7 @@ void main() {
         $header
         @immutable
         @Charcoal()
-        sealed class Edition(this.id) {
+        sealed class Edition(this.id) with EditionCharcoal {
           final int id;
 
           @override
@@ -241,7 +309,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         final class Hardcover(
           this.year,
         ) extends Edition with HardcoverCharcoal {
@@ -395,7 +463,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         ''',
         'Edition is sealed, but has no classes to decode.',
       );
@@ -406,10 +474,36 @@ void main() {
         '''
         $header
         @Charcoal()
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         final class Hardcover() extends Edition;
         ''',
         'Hardcover must declare `with HardcoverCharcoal`.',
+      );
+    });
+
+    test('a sealed class missing its mixin', () async {
+      await expectBuildError(
+        '''
+        $header
+        @Charcoal()
+        sealed class Edition();
+        sealed class Digital() extends Edition with DigitalCharcoal;
+        final class Ebook() extends Digital with EbookCharcoal;
+        ''',
+        'Edition must declare `with EditionCharcoal`.',
+      );
+    });
+
+    test('a branch missing its mixin', () async {
+      await expectBuildError(
+        '''
+        $header
+        @Charcoal()
+        sealed class Edition() with EditionCharcoal;
+        sealed class Digital() extends Edition;
+        final class Ebook() extends Digital with EbookCharcoal;
+        ''',
+        'Digital must declare `with DigitalCharcoal`.',
       );
     });
 
@@ -418,7 +512,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         abstract class Printed() extends Edition;
         ''',
         'Printed is abstract but not sealed',
@@ -442,7 +536,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         @Charcoal(tag: 'same')
         final class Hardcover() extends Edition with HardcoverCharcoal;
         @Charcoal(tag: 'same')
@@ -457,7 +551,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         final class Hardcover(this.type)
             extends Edition with HardcoverCharcoal {
           final String type;
@@ -471,9 +565,9 @@ void main() {
       final result = await build('''
         $header
         @Charcoal()
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         @Charcoal(discriminator: 'a')
-        sealed class Digital() extends Edition;
+        sealed class Digital() extends Edition with DigitalCharcoal;
         @Charcoal(discriminator: 'b')
         final class Ebook() extends Digital with EbookCharcoal;
         @Charcoal(discriminator: 'c')
@@ -491,7 +585,7 @@ void main() {
       final result = await build('''
         $header
         @Charcoal(tag: 'a')
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         final class Ebook() extends Edition with EbookCharcoal;
         @Charcoal(tag: 'b')
         final class Book() with BookCharcoal;
@@ -508,9 +602,9 @@ void main() {
         '''
         $header
         @Charcoal(discriminator: 'a')
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         @Charcoal(discriminator: 'b')
-        sealed class Other();
+        sealed class Other() with OtherCharcoal;
         final class Ebook() extends Edition with EbookCharcoal implements Other;
         ''',
         'Ebook is under sealed classes with different discriminators',
@@ -522,7 +616,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        sealed class Edition(this.year) {
+        sealed class Edition(this.year) with EditionCharcoal {
           final int year;
         }
         final class Ebook() extends Edition with EbookCharcoal {
@@ -538,7 +632,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        sealed class Edition(this.year) {
+        sealed class Edition(this.year) with EditionCharcoal {
           final int year;
         }
         final class Ebook(super.published) extends Edition with EbookCharcoal;
@@ -552,7 +646,7 @@ void main() {
         '''
         $header
         @Charcoal()
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         final class Ebook() extends Edition with EbookCharcoal;
         @immutable
         @Charcoal()

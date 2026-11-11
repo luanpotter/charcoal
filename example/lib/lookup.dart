@@ -3,7 +3,7 @@ import 'package:charcoal/charcoal.dart';
 part 'lookup.charcoal.g.dart';
 
 @Charcoal()
-sealed class const Lookup<T>();
+sealed class const Lookup<T>() with LookupCharcoal<T>;
 
 final class const Known<T>(this.value) extends Lookup<T> with KnownCharcoal<T> {
   final T value;
