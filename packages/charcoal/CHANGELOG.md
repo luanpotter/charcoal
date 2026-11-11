@@ -1,3 +1,9 @@
+## 0.0.8
+
+ - **FEAT**: Include a Decorder object ([#57](https://github.com/luanpotter/charcoal/issues/57)). ([42573dc7](https://github.com/luanpotter/charcoal/commit/42573dc709f246d0eb29cfe24110ada687e38208))
+ - **FEAT**: Standardize charcoal roots ([#55](https://github.com/luanpotter/charcoal/issues/55)). ([6d286532](https://github.com/luanpotter/charcoal/commit/6d286532e09e945d5c5574aa869f2f7ceee2733c))
+ - **FEAT**: Generated mixins implement CharcoalEncodable ([#54](https://github.com/luanpotter/charcoal/issues/54)). ([b2529222](https://github.com/luanpotter/charcoal/commit/b252922296ef5de103814d53b6e7934c102d0fa6))
+
 ## 0.0.7
 
  - Bump version to keep all packages in the workspace in lockstep.
