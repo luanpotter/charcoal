@@ -66,7 +66,7 @@ final class LibraryReader(this._resolver, this._config) {
     ];
     final families = [
       for (final element in covered)
-        if (element.isSealed) _readFamily(element),
+        if (element.isSealed) await _readFamily(element),
     ];
 
     final instantiatedClasses = <ClassModel>[];
@@ -183,10 +183,13 @@ final class LibraryReader(this._resolver, this._config) {
     return _annotationOf(element)?.getField(option)?.toStringValue();
   }
 
-  FamilyModel _readFamily(ClassElement element) {
+  Future<FamilyModel> _readFamily(ClassElement element) async {
     final name = element.name!;
     if (element.isPrivate) {
       errors.add('$name is private, so it cannot be annotated.');
+    }
+    if (!await _hasMixin(element)) {
+      errors.add('$name must declare `with ${name}Charcoal`.');
     }
     if (_stringOption(element, 'tag') != null) {
       errors.add('$name sets a tag, which only a class it covers can.');
@@ -233,8 +236,22 @@ final class LibraryReader(this._resolver, this._config) {
       discriminator: _discriminatorOf(element),
       isImmutable: _isImmutable(element),
       leaves: leaves,
+      isRoot: isRoot,
       typeParameters: _typeParametersOf(element),
     );
+  }
+
+  /// See [ClassModel.mutableFamily].
+  ///
+  /// A leaf like `Unknown extends Lookup<Never>` takes an `Object` too, as any
+  /// narrower type would throw on a `Lookup<int>` it is compared to.
+  String? _mutableFamilyOf(ClassElement element) {
+    final roots = _rootsOf(element).toList();
+    if (roots.every(_isImmutable)) {
+      return null;
+    }
+    final [root, ...others] = roots;
+    return others.isEmpty && root.typeParameters.isEmpty ? root.name : 'Object';
   }
 
   /// One use of a generic sealed class, with only the leaves that can fit it.
@@ -509,6 +526,7 @@ final class LibraryReader(this._resolver, this._config) {
       typeParameters: _typeParametersOf(element),
       isImmutable: _isImmutable(element),
       familyTag: _familyTagOf(element),
+      mutableFamily: _mutableFamilyOf(element),
       handWritten: _handWrittenOf(element),
       generatesIsEmpty:
           _canClassBeEmpty(element) &&

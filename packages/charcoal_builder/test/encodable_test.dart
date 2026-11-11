@@ -5,7 +5,7 @@ import 'support.dart';
 
 void main() {
   group('encodable', () {
-    test('is what a class and a leaf are, through their mixins', () async {
+    test('is what a class, a root and a leaf are, through mixins', () async {
       final result = await build(
         '''
         $header
@@ -14,7 +14,7 @@ void main() {
           final String title;
         }
         @Charcoal()
-        sealed class const Edition({required this.year}) {
+        sealed class const Edition({required this.year}) with EditionCharcoal {
           final int year;
         }
         final class const Hardcover({required super.year})
@@ -23,12 +23,15 @@ void main() {
           Book('Dune'),
           Hardcover(year: 1965),
         ];
+        const Edition edition = Hardcover(year: 1965);
+        const CharcoalEncodable encodable = edition;
         String encode(CharcoalEncodable it) => it.toJsonString();
         ''',
         outputs: {
           output: decodedMatches(
             allOf([
               contains('mixin BookCharcoal implements CharcoalEncodable {'),
+              contains('mixin EditionCharcoal implements CharcoalEncodable {'),
               contains(
                 'mixin HardcoverCharcoal implements CharcoalEncodable {',
               ),

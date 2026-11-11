@@ -103,6 +103,14 @@ void main() {
     );
   });
 
+  test('is encodable from the root, as each leaf is', () {
+    const List<CharcoalEncodable> shelf = _all;
+
+    expect(shelf.map((it) => it.toJsonString()), [
+      for (final edition in _all) EditionCharcoal.encodeJsonString(edition),
+    ]);
+  });
+
   test('works from a leaf, ignoring the tag', () {
     final hardcover = HardcoverCharcoal.fromJsonString(
       _hardcover.toJsonString(),
@@ -150,6 +158,17 @@ void main() {
       copy.formats.add('pdf');
 
       expect(ebook.formats, ['epub']);
+    });
+
+    test('keeps the type of a branch or a marker', () {
+      final Digital digital = _newEbook(2005);
+      const Readable readable = _hardcover;
+
+      final copies = <Digital>[digital.copy()];
+      final shared = <Readable>[readable.copy()];
+
+      expect(copies.single, isA<Ebook>());
+      expect(shared.single, same(_hardcover));
     });
 
     test('shares an immutable leaf', () {

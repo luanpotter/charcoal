@@ -351,7 +351,7 @@ void main() {
           '''
           $header
           @Charcoal()
-          sealed class Tree<T>();
+          sealed class Tree<T>() with TreeCharcoal<T>;
           final class Branch<V>(this.next) extends Tree<V> with BranchCharcoal<V> {
             final Tree<Set<V>>? next;
           }
@@ -401,7 +401,7 @@ void main() {
         '''
       $header
       @Charcoal()
-      sealed class Lookup<T>();
+      sealed class Lookup<T>() with LookupCharcoal<T>;
       final class Known<T>(this.value) extends Lookup<T> with KnownCharcoal<T> {
         final T value;
       }
@@ -418,7 +418,11 @@ void main() {
         outputs: {
           output: decodedMatches(
             allOf([
-              contains('extension LookupCharcoalMembers<T> on Lookup<T> {'),
+              contains('mixin LookupCharcoal<T> {'),
+              contains(r'bool contentEquals(Lookup<T> $other);'),
+              contains(
+                r'bool contentEquals(Object $other) => $other is Known<T>',
+              ),
               contains(r'static bool $equals<T>(Lookup<T> $a, Lookup<T> $b)'),
               contains(r'final Known<T> $l => switch ($b) {'),
               contains(r'final Known<T> $r => KnownCharcoal.$equals($l, $r)'),
@@ -467,7 +471,7 @@ void main() {
           '''
           $header
           @Charcoal()
-          sealed class Lookup<T>();
+          sealed class Lookup<T>() with LookupCharcoal<T>;
           final class Estimated() extends Lookup<int> with EstimatedCharcoal;
           @Charcoal()
           final class Book(this.title) with BookCharcoal {
@@ -483,7 +487,7 @@ void main() {
           '''
           $header
           @Charcoal()
-          sealed class Edition();
+          sealed class Edition() with EditionCharcoal;
           final class Boxed<T>(this.item)
               extends Edition with BoxedCharcoal<T> {
             final T item;

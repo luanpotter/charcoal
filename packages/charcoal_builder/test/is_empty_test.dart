@@ -131,7 +131,7 @@ void main() {
         'a class in a sealed family, as it has its tag to keep',
         '''
         @Charcoal(omit: Omit.empty)
-        sealed class Edition();
+        sealed class Edition() with EditionCharcoal;
         final class Book() extends Edition with BookCharcoal;
         ''',
       ),

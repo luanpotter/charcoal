@@ -1,4 +1,4 @@
-/// Shared shape of the generated mixins for concrete classes.
+/// Shared shape of the generated mixins for concrete classes and sealed roots.
 abstract interface class CharcoalEncodable() {
   /// Its JSON as a map, as `jsonDecode` would give it.
   Map<String, Object?> toMap();

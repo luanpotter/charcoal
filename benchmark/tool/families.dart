@@ -99,7 +99,7 @@ String _charcoalFamily(String prefix, int size, {required String annotation}) {
   final out = StringBuffer()
     ..writeCode('''
       $annotation@Charcoal()
-      sealed class const $item();
+      sealed class const $item() with ${item}Charcoal;
 
       ''');
   for (final leaf in _leaves(size)) {

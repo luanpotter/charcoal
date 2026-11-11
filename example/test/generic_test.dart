@@ -198,5 +198,13 @@ void main() {
       expect(known.copy(), isA<Known<int>>());
       expect(identical(same.copy(), same), isFalse);
     });
+
+    test('tells apart a leaf of a narrower type argument', () {
+      const Lookup<int> unknown = Unknown();
+      const Lookup<num> estimated = Estimated(low: 1, high: 2);
+
+      expect(unknown.contentEquals(const Known(1)), isFalse);
+      expect(estimated.contentEquals(const Known(1.5)), isFalse);
+    });
   });
 }

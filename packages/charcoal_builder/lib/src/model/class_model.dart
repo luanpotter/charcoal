@@ -29,6 +29,7 @@ final class const ClassModel({
   this.typeParameters = '',
   this.isImmutable = false,
   this.familyTag,
+  this.mutableFamily,
   this.handWritten = const {},
   this.generatesIsEmpty = false,
 }) {
@@ -55,6 +56,10 @@ final class const ClassModel({
   /// What it writes first, if it is in a sealed family.
   final FamilyTag? familyTag;
 
+  /// What its `contentEquals` takes, to implement that of a mutable sealed root
+  /// it is under: `Edition`, or `Object` if it is under two or a generic one.
+  final String? mutableFamily;
+
   /// What it or a superclass defines, which is not to be generated.
   final Set<String> handWritten;
 
@@ -78,6 +83,7 @@ final class const FamilyModel({
   required this.discriminator,
   required this.isImmutable,
   required this.leaves,
+  this.isRoot = false,
   this.typeParameters = '',
 }) {
   /// How generated code declares it: `Edition` or `Lookup<T>`.
@@ -90,6 +96,10 @@ final class const FamilyModel({
   final String owner;
   final String discriminator;
   final bool isImmutable;
+
+  /// Whether no covered sealed class is above it, so that its mixin declares
+  /// what each leaf implements.
+  final bool isRoot;
   final List<LeafModel> leaves;
 
   /// Its type parameters as declared: `<T extends num>`, if it has any.
