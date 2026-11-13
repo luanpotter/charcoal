@@ -12,15 +12,20 @@ abstract final class JsonWriter() {
   /// A Dart literal for any string, as JSON escapes are valid in Dart too.
   static String stringLiteral(String value) {
     final json = jsonEncode(value);
-    final content = json.substring(1, json.length - 1);
-    return "'${content.replaceAll("'", r"\'").replaceAll(r'$', r'\$')}'";
+    final content = json
+        .substring(1, json.length - 1) // removes surrounding quotes
+        .replaceAll("'", r"\'")
+        .replaceAll(r'$', r'\$');
+    return "'$content'";
   }
 
   /// The text JSON holds for a string, ready to go inside a Dart literal.
   static String _jsonText(String value) {
-    return jsonEncode(
-      value,
-    ).replaceAll(r'\', r'\\').replaceAll("'", r"\'").replaceAll(r'$', r'\$');
+    final json = jsonEncode(value);
+    return json
+        .replaceAll(r'\', r'\\')
+        .replaceAll("'", r"\'")
+        .replaceAll(r'$', r'\$');
   }
 
   /// The decoding statics as one constant, for code generic over the class.
